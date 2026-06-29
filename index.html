@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strategy &amp; Economy — WASP Balance Tuner</title>
+<meta name="description" content="Offline single-file tuner for WASP Warfare tech-tree, economy, and AI commander constants. Edit, preview, export.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gunmetal:#14171B; --steel:#2A2F36; --steel2:#343b44;
+  --olive:#5C6536; --bone:#E7E3D6; --orange:#D9763C; --orange-deep:#B85F2A;
+  --chalk:#F2EFE8; --line:#39414b; --danger:#c0392b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:Inter,system-ui,'Segoe UI',Arial,sans-serif;background:var(--gunmetal);color:var(--bone);overflow:hidden}
+h1,h2,h3{font-family:Oswald,Inter,sans-serif;font-weight:600;letter-spacing:.5px}
+
+/* ---- Brand bar ---- */
+.brandbar{
+  height:54px;display:flex;align-items:center;gap:14px;padding:0 16px;
+  background:linear-gradient(90deg,#101317 0%,#171b20 100%);
+  border-bottom:1px solid var(--line);position:relative;z-index:5;flex-shrink:0
+}
+.brandbar .mark{width:34px;height:34px;flex:0 0 auto}
+.brandbar .word{display:flex;flex-direction:column;line-height:1}
+.brandbar .word .t1{font-family:Oswald,sans-serif;font-weight:600;font-size:19px;letter-spacing:2px;color:var(--bone)}
+.brandbar .word .t2{font-family:Oswald,sans-serif;font-weight:400;font-size:10px;letter-spacing:6px;color:var(--orange);margin-top:2px}
+.brandbar .tool{margin-left:8px;padding-left:14px;border-left:1px solid var(--line);font-size:12px;color:#9aa3ad}
+.brandbar .tool b{color:var(--bone);font-weight:600}
+.brandbar .spacer{flex:1}
+.brandbar .chip{font-family:'JetBrains Mono',monospace;font-size:10px;color:#8b939c;border:1px solid var(--line);
+  border-radius:10px;padding:3px 9px;background:#0d1014}
+.brandbar .chip b{color:var(--olive)}
+
+/* ---- Layout ---- */
+.app{display:flex;flex-direction:column;height:calc(100vh - 54px)}
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--line);background:var(--gunmetal);flex-shrink:0}
+.tab-bar button{
+  font-family:Oswald,sans-serif;font-size:13px;letter-spacing:1px;text-transform:uppercase;
+  background:none;border:none;color:#9aa3ad;cursor:pointer;padding:10px 22px;border-bottom:2px solid transparent;
+  transition:color .15s,border-color .15s
+}
+.tab-bar button:hover{color:var(--bone)}
+.tab-bar button.active{color:var(--orange);border-bottom-color:var(--orange)}
+.panels{flex:1;overflow:hidden;position:relative}
+.panel{position:absolute;inset:0;overflow:auto;padding:0;display:none}
+.panel.active{display:block}
+
+/* ---- Export bar ---- */
+.export-bar{
+  height:44px;display:flex;align-items:center;gap:10px;padding:0 16px;
+  background:#101317;border-top:1px solid var(--line);flex-shrink:0
+}
+.export-bar .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#9aa3ad;font-family:'JetBrains Mono',monospace}
+.export-bar .spacer{flex:1}
+.export-bar .note{font-size:11px;color:#636d78;font-style:italic}
+
+/* ---- Placeholder panel ---- */
+.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;color:#636d78}
+.placeholder h2{font-size:22px;color:#4a535c;letter-spacing:2px}
+.placeholder p{font-size:13px}
+
+/* ---- Economy panel ---- */
+.econ-layout{display:grid;grid-template-columns:1fr 320px;min-height:100%;gap:0}
+.econ-main{overflow:auto;padding:20px 24px}
+.econ-sidebar{background:#101317;border-left:1px solid var(--line);overflow:auto;padding:16px}
+
+.group-card{background:var(--steel);border:1px solid var(--line);border-radius:8px;margin-bottom:18px;overflow:hidden}
+.group-card .group-head{
+  padding:9px 14px;background:var(--gunmetal);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:8px
+}
+.group-card .group-head h3{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--bone)}
+.group-card .group-head .count{font-size:10px;color:#636d78;font-family:'JetBrains Mono',monospace;margin-left:auto}
+.group-body{padding:14px 14px 10px}
+
+/* ---- Form elements ---- */
+.field{margin-bottom:12px}
+.field label{
+  display:block;font-size:10px;text-transform:uppercase;letter-spacing:.6px;
+  color:#9aa3ad;margin-bottom:4px;font-family:'JetBrains Mono',monospace
+}
+.field label .key{color:#636d78;font-size:9px;display:block;margin-top:1px;text-transform:none;letter-spacing:0}
+input[type=number],select{
+  width:100%;background:var(--gunmetal);border:1px solid var(--line);color:var(--bone);
+  border-radius:5px;padding:6px 8px;outline:none;font-family:inherit;font-size:13px
+}
+input[type=number]:focus,select:focus{border-color:var(--orange)}
+input[type=number].array-el{width:64px;flex-shrink:0}
+
+.array-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.array-row .array-idx{font-size:9px;color:#636d78;font-family:'JetBrains Mono',monospace;text-align:center;margin-top:2px}
+.array-cell{display:flex;flex-direction:column;align-items:center}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+/* ---- Income preview widget ---- */
+.income-preview{
+  background:var(--steel);border:1px solid var(--orange);border-radius:8px;padding:14px;margin-bottom:16px
+}
+.income-preview h3{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--orange);margin-bottom:10px;font-family:Oswald,sans-serif}
+.income-preview .formula{font-family:'JetBrains Mono',monospace;font-size:11px;color:#9aa3ad;margin-bottom:10px;background:#0d1014;padding:6px 8px;border-radius:4px}
+.income-preview .formula b{color:var(--orange)}
+.income-preview .preview-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.income-preview .preview-row label{font-size:11px;color:#9aa3ad;white-space:nowrap;font-family:'JetBrains Mono',monospace}
+.income-preview .preview-row input{flex:1;min-width:60px}
+.income-preview .result{
+  margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:14px;
+  color:var(--bone);text-align:center;padding:8px;background:var(--gunmetal);border-radius:4px
+}
+.income-preview .result b{color:var(--orange);font-size:18px}
+
+/* ---- Sidebar info ---- */
+.info-card{border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:12px;background:var(--steel)}
+.info-card h4{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--orange);margin-bottom:6px;font-family:Oswald,sans-serif}
+.info-card p{font-size:11px;color:#9aa3ad;line-height:1.6}
+.info-card code{background:#0d1014;padding:1px 4px;border-radius:3px;color:var(--orange);font-family:'JetBrains Mono',monospace;font-size:10px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--line)}
+.stat-row:last-child{border-bottom:none}
+.stat-row .sk{font-size:10px;color:#9aa3ad;font-family:'JetBrains Mono',monospace}
+.stat-row .sv{font-size:12px;color:var(--bone);font-weight:600}
+.badge-olive{display:inline-block;font-size:9px;background:var(--olive);color:var(--chalk);padding:1px 6px;border-radius:10px;margin-left:6px}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--steel2);border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---- Buttons ---- */
+button.primary{
+  cursor:pointer;background:var(--orange);border:1px solid var(--orange-deep);
+  color:#1a1208;font-weight:600;border-radius:5px;padding:7px 14px;font-size:12px;font-family:inherit
+}
+button.primary:hover{background:var(--orange-deep)}
+button.sec{
+  cursor:pointer;background:var(--steel2);border:1px solid var(--line);
+  color:var(--bone);border-radius:5px;padding:7px 14px;font-size:12px;font-family:inherit
+}
+button.sec:hover{border-color:var(--orange);color:var(--orange)}
+</style>
+</head>
+<body>
+
+<!-- ===== Brand bar ===== -->
+<div class="brandbar">
+  <svg class="mark" viewBox="0 0 96 96" aria-label="Miksuu's Warfare">
+    <g fill="none" stroke-width="7" stroke-linecap="square" stroke-linejoin="miter">
+      <polyline points="20,54 48,30 76,54" stroke="#D9763C"/>
+      <polyline points="20,66 48,42 76,66" stroke="#F2EFE8"/>
+      <polyline points="20,78 48,54 76,78" stroke="#5C6536"/>
+    </g>
+  </svg>
+  <div class="word">
+    <span class="t1">STRATEGY &amp; ECONOMY</span>
+    <span class="t2">WASP BALANCE TUNER</span>
+  </div>
+  <div class="tool"><b>Warfare Balance Editor</b> · tech-tree · economy · AI commander</div>
+  <div class="spacer"></div>
+  <div class="chip" id="model-status">model: <b>loading…</b></div>
+</div>
+
+<div class="app">
+
+  <!-- ===== Tab bar ===== -->
+  <div class="tab-bar">
+    <button class="active" data-tab="tech">Tech-Tree</button>
+    <button data-tab="economy">Economy</button>
+    <button data-tab="ai">AI Commander</button>
+  </div>
+
+  <!-- ===== Panels ===== -->
+  <div class="panels">
+
+    <!-- === Tech-Tree placeholder === -->
+    <div class="panel active" id="panel-tech">
+      <div class="placeholder">
+        <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+          <rect x="4" y="4" width="14" height="10" rx="2" fill="#343b44" stroke="#39414b" stroke-width="1.5"/>
+          <rect x="21" y="4" width="14" height="10" rx="2" fill="#343b44" stroke="#39414b" stroke-width="1.5"/>
+          <rect x="38" y="4" width="14" height="10" rx="2" fill="#343b44" stroke="#39414b" stroke-width="1.5"/>
+          <rect x="12" y="22" width="14" height="10" rx="2" fill="#343b44" stroke="#39414b" stroke-width="1.5"/>
+          <rect x="30" y="22" width="14" height="10" rx="2" fill="#343b44" stroke="#39414b" stroke-width="1.5"/>
+          <rect x="21" y="40" width="14" height="10" rx="2" fill="#5C6536" stroke="#5C6536" stroke-width="1.5"/>
+          <line x1="11" y1="14" x2="19" y2="22" stroke="#39414b" stroke-width="1.5"/>
+          <line x1="28" y1="14" x2="19" y2="22" stroke="#39414b" stroke-width="1.5"/>
+          <line x1="28" y1="14" x2="37" y2="22" stroke="#39414b" stroke-width="1.5"/>
+          <line x1="45" y1="14" x2="37" y2="22" stroke="#39414b" stroke-width="1.5"/>
+          <line x1="19" y1="32" x2="28" y2="40" stroke="#39414b" stroke-width="1.5"/>
+          <line x1="37" y1="32" x2="28" y2="40" stroke="#39414b" stroke-width="1.5"/>
+        </svg>
+        <h2>TECH-TREE</h2>
+        <p>Per-faction upgrade editor — coming in next build (Task 3)</p>
+      </div>
+    </div>
+
+    <!-- === Economy panel === -->
+    <div class="panel" id="panel-economy">
+      <div class="econ-layout">
+
+        <!-- Main scroll area -->
+        <div class="econ-main" id="econ-main">
+          <!-- Groups rendered by JS -->
+        </div>
+
+        <!-- Sidebar -->
+        <div class="econ-sidebar">
+          <!-- Income preview widget -->
+          <div class="income-preview">
+            <h3>Income Preview</h3>
+            <div class="formula">income = round(<b>sampleSV</b> × <b>INCOME_COEF</b>)</div>
+            <div class="preview-row">
+              <label>Sample Town SV</label>
+              <input type="number" id="preview-sv" value="100" min="0" step="10">
+            </div>
+            <div class="preview-row">
+              <label>INCOME_COEF</label>
+              <input type="number" id="preview-coef" readonly style="background:#0d1014;color:var(--orange)">
+            </div>
+            <div class="result">Income = <b id="preview-result">—</b></div>
+          </div>
+
+          <!-- Constant count info -->
+          <div class="info-card">
+            <h4>Economy Constants</h4>
+            <div class="stat-row"><span class="sk">Total loaded</span><span class="sv" id="stat-total">—</span></div>
+            <div class="stat-row"><span class="sk">Scalars</span><span class="sv" id="stat-scalars">—</span></div>
+            <div class="stat-row"><span class="sk">Arrays</span><span class="sv" id="stat-arrays">—</span></div>
+            <div class="stat-row"><span class="sk">Groups</span><span class="sv" id="stat-groups">—</span></div>
+          </div>
+
+          <div class="info-card">
+            <h4>Income System Options</h4>
+            <p>
+              <code>1</code> Proportional to team size<br>
+              <code>2</code> Equal per side<br>
+              <code>3</code> Town supply value<br>
+              <code>4</code> Hybrid (town + team)
+            </p>
+          </div>
+
+          <div class="info-card">
+            <h4>HQ Repair Tiers</h4>
+            <p>
+              1st free repair → <code>PRICE_1ST</code><br>
+              2nd repair → <code>PRICE_2ND</code><br>
+              3rd repair → <code>PRICE_3RD</code><br>
+              Cash buyout → <code>PRICE_CASH</code>
+            </p>
+          </div>
+
+          <div class="info-card">
+            <h4>Array Fields</h4>
+            <p>Arrays hold per-level values. Each element maps to an upgrade level or tier. Edit individual cells inline.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- === AI Commander placeholder === -->
+    <div class="panel" id="panel-ai">
+      <div class="placeholder">
+        <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+          <circle cx="28" cy="20" r="10" fill="#343b44" stroke="#39414b" stroke-width="1.5"/>
+          <circle cx="28" cy="20" r="4" fill="#5C6536"/>
+          <path d="M14 42 Q28 32 42 42" stroke="#39414b" stroke-width="1.5" fill="none"/>
+          <circle cx="14" cy="42" r="4" fill="#343b44" stroke="#39414b" stroke-width="1.5"/>
+          <circle cx="42" cy="42" r="4" fill="#343b44" stroke="#39414b" stroke-width="1.5"/>
+          <line x1="28" y1="30" x2="28" y2="36" stroke="#39414b" stroke-width="1.5"/>
+          <line x1="28" y1="36" x2="14" y2="42" stroke="#D9763C" stroke-width="1.5"/>
+          <line x1="28" y1="36" x2="42" y2="42" stroke="#D9763C" stroke-width="1.5"/>
+        </svg>
+        <h2>AI COMMANDER</h2>
+        <p>AI constants, spearhead params, bootstrap &amp; cross-links — coming in next build (Task 4)</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== Export bar ===== -->
+  <div class="export-bar">
+    <span class="lbl">Export</span>
+    <button class="primary" disabled title="Available after Task 5">Export Economy Block</button>
+    <button class="sec" disabled title="Available after Task 5">Copy SQF</button>
+    <div class="spacer"></div>
+    <span class="note">Full export (regenerate SQF config) ships in Task 5</span>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+// ============================================================
+// Model — holds all 3 JSON datasets
+// ============================================================
+const MODEL = {
+  economy: {},
+  upgrades: {},
+  ai: {}
+};
+
+// Expose for Playwright verification
+window.MODEL = MODEL;
+
+// ============================================================
+// Grouping definitions for economy constants
+// ============================================================
+const ECONOMY_GROUPS = [
+  {
+    id: 'starting',
+    label: 'Starting Resources',
+    keys: [
+      'WFBE_C_ECONOMY_FUNDS_START_WEST',
+      'WFBE_C_ECONOMY_FUNDS_START_EAST',
+      'WFBE_C_ECONOMY_FUNDS_START_GUER',
+      'WFBE_C_ECONOMY_SUPPLY_START_WEST',
+      'WFBE_C_ECONOMY_SUPPLY_START_EAST',
+      'WFBE_C_ECONOMY_SUPPLY_START_GUER',
+    ]
+  },
+  {
+    id: 'income',
+    label: 'Income Engine',
+    keys: [
+      'WFBE_C_ECONOMY_INCOME_SYSTEM',
+      'WFBE_C_ECONOMY_CURRENCY_SYSTEM',
+      'WFBE_C_ECONOMY_SUPPLY_SYSTEM',
+      'WFBE_C_ECONOMY_INCOME_INTERVAL',
+      'WFBE_C_ECONOMY_INCOME_COEF',
+      'WFBE_C_ECONOMY_INCOME_DIVIDED',
+      'WFBE_C_ECONOMY_INCOME_PERCENT_MAX',
+      'WFBE_C_ECONOMY_SUPPLY_MAX_TEAM_LIMIT',
+      'WFBE_C_MAX_ECONOMY_SUPPLY_LIMIT',
+      'WFBE_C_ECONOMY_SUPPLY_MISSION_MULTIPLIER',
+      'WFBE_C_ECONOMY_SUPPLY_TIME_INCREASE_DELAY',
+    ]
+  },
+  {
+    id: 'rates',
+    label: 'Supply Rates (Arrays)',
+    keys: [
+      'WFBE_C_TOWNS_SUPPLY_LEVELS_TIME',
+      'WFBE_C_TOWNS_SUPPLY_LEVELS_TRUCK',
+      'WFBE_C_ARTILLERY_INTERVALS',
+      'WFBE_C_RESPAWN_RANGES',
+    ]
+  },
+  {
+    id: 'support',
+    label: 'Support & Crew Prices',
+    keys: [
+      'WFBE_C_UNITS_SUPPORT_RANGE',
+      'WFBE_C_UNITS_CREW_COST',
+      'WFBE_C_UNITS_SUPPORT_HEAL_PRICE',
+      'WFBE_C_UNITS_SUPPORT_HEAL_TIME',
+      'WFBE_C_UNITS_SUPPORT_REARM_PRICE',
+      'WFBE_C_UNITS_SUPPORT_REARM_TIME',
+      'WFBE_C_UNITS_SUPPORT_REFUEL_PRICE',
+      'WFBE_C_UNITS_SUPPORT_REFUEL_TIME',
+      'WFBE_C_UNITS_SUPPORT_REPAIR_PRICE',
+      'WFBE_C_UNITS_SUPPORT_REPAIR_TIME',
+      'WFBE_C_PLAYERS_GEAR_SELL_COEF',
+    ]
+  },
+  {
+    id: 'hqrepair',
+    label: 'HQ Repair',
+    keys: [
+      'WFBE_C_BASE_HQ_REPAIR_PRICE_WEST',
+      'WFBE_C_BASE_HQ_REPAIR_PRICE_EAST',
+      'WFBE_C_BASE_HQ_REPAIR_PRICE_GUER',
+      'WFBE_C_BASE_HQ_REPAIR_COUNT_WEST',
+      'WFBE_C_BASE_HQ_REPAIR_COUNT_EAST',
+      'WFBE_C_BASE_HQ_REPAIR_COUNT_GUER',
+      'WFBE_C_BASE_HQ_REPAIR_PRICE_1ST',
+      'WFBE_C_BASE_HQ_REPAIR_PRICE_2ND',
+      'WFBE_C_BASE_HQ_REPAIR_PRICE_3RD',
+      'WFBE_C_BASE_HQ_REPAIR_PRICE_CASH',
+    ]
+  },
+  {
+    id: 'structs',
+    label: 'Structure Caps',
+    keys: [
+      'WFBE_C_STRUCTURES_MAX',
+    ]
+  },
+  {
+    id: 'antistack',
+    label: 'Anti-Stack Tuning',
+    keys: [
+      'TEAM_SKILL_TICKS_WEST',
+      'TEAM_SKILL_TICKS_EAST',
+      'TEAM_SKILL_TICKS_DIFF_THRESHOLD',
+      'TEAM_SKILL_TICKS_COMPENSATION_MULTIPLIER',
+      'TEAM_SKILL_TICKS_END_THRESHOLD',
+      'SUPPLY_COMPENSATION_AMOUNT_WEST',
+      'SUPPLY_COMPENSATION_AMOUNT_EAST',
+      'PLAYER_NUMBER_DIFFERENCE_MODIFIER',
+      'TEAM_WEST_TICKS_NO_PLAYERS',
+      'TEAM_EAST_TICKS_NO_PLAYERS',
+      'SUPPLY_INCOME_TICK_MODIFIER_MULTIPLIER',
+      'WFBE_SUPPLY_MISSION_SCORE_COEF',
+      'WFBE_UPGRADE_SCORE_COEF',
+    ]
+  },
+  // Catch-all — populated at runtime
+  {
+    id: 'other',
+    label: 'Other',
+    keys: []
+  }
+];
+
+// Human-readable labels (short names)
+const KEY_LABELS = {
+  'WFBE_C_ECONOMY_FUNDS_START_WEST':            'Funds Start — West',
+  'WFBE_C_ECONOMY_FUNDS_START_EAST':            'Funds Start — East',
+  'WFBE_C_ECONOMY_FUNDS_START_GUER':            'Funds Start — Guerrilla',
+  'WFBE_C_ECONOMY_SUPPLY_START_WEST':           'Supply Start — West',
+  'WFBE_C_ECONOMY_SUPPLY_START_EAST':           'Supply Start — East',
+  'WFBE_C_ECONOMY_SUPPLY_START_GUER':           'Supply Start — Guerrilla',
+  'WFBE_C_ECONOMY_INCOME_SYSTEM':               'Income System',
+  'WFBE_C_ECONOMY_CURRENCY_SYSTEM':             'Currency System',
+  'WFBE_C_ECONOMY_SUPPLY_SYSTEM':               'Supply System',
+  'WFBE_C_ECONOMY_INCOME_INTERVAL':             'Income Interval (s)',
+  'WFBE_C_ECONOMY_INCOME_COEF':                 'Income Coefficient',
+  'WFBE_C_ECONOMY_INCOME_DIVIDED':              'Income Divided',
+  'WFBE_C_ECONOMY_INCOME_PERCENT_MAX':          'Income % Max',
+  'WFBE_C_ECONOMY_SUPPLY_MAX_TEAM_LIMIT':       'Supply Max Team Limit',
+  'WFBE_C_MAX_ECONOMY_SUPPLY_LIMIT':            'Max Economy Supply Limit',
+  'WFBE_C_ECONOMY_SUPPLY_MISSION_MULTIPLIER':   'Supply Mission Multiplier',
+  'WFBE_C_ECONOMY_SUPPLY_TIME_INCREASE_DELAY':  'Supply Time Increase Delay (s)',
+  'WFBE_C_TOWNS_SUPPLY_LEVELS_TIME':            'Town Supply Levels — Time',
+  'WFBE_C_TOWNS_SUPPLY_LEVELS_TRUCK':           'Town Supply Levels — Truck',
+  'WFBE_C_ARTILLERY_INTERVALS':                 'Artillery Intervals (s)',
+  'WFBE_C_RESPAWN_RANGES':                      'Respawn Ranges (m)',
+  'WFBE_C_UNITS_SUPPORT_RANGE':                 'Support Range (m)',
+  'WFBE_C_UNITS_CREW_COST':                     'Crew Cost',
+  'WFBE_C_UNITS_SUPPORT_HEAL_PRICE':            'Heal Price',
+  'WFBE_C_UNITS_SUPPORT_HEAL_TIME':             'Heal Time (s)',
+  'WFBE_C_UNITS_SUPPORT_REARM_PRICE':           'Rearm Price (per round)',
+  'WFBE_C_UNITS_SUPPORT_REARM_TIME':            'Rearm Time (s)',
+  'WFBE_C_UNITS_SUPPORT_REFUEL_PRICE':          'Refuel Price (per unit)',
+  'WFBE_C_UNITS_SUPPORT_REFUEL_TIME':           'Refuel Time (s)',
+  'WFBE_C_UNITS_SUPPORT_REPAIR_PRICE':          'Repair Price (per unit)',
+  'WFBE_C_UNITS_SUPPORT_REPAIR_TIME':           'Repair Time (s)',
+  'WFBE_C_PLAYERS_GEAR_SELL_COEF':             'Gear Sell Coefficient',
+  'WFBE_C_BASE_HQ_REPAIR_PRICE_WEST':          'HQ Repair Price — West',
+  'WFBE_C_BASE_HQ_REPAIR_PRICE_EAST':          'HQ Repair Price — East',
+  'WFBE_C_BASE_HQ_REPAIR_PRICE_GUER':          'HQ Repair Price — Guerrilla',
+  'WFBE_C_BASE_HQ_REPAIR_COUNT_WEST':          'HQ Repair Count — West',
+  'WFBE_C_BASE_HQ_REPAIR_COUNT_EAST':          'HQ Repair Count — East',
+  'WFBE_C_BASE_HQ_REPAIR_COUNT_GUER':          'HQ Repair Count — Guerrilla',
+  'WFBE_C_BASE_HQ_REPAIR_PRICE_1ST':           'Repair Price — 1st',
+  'WFBE_C_BASE_HQ_REPAIR_PRICE_2ND':           'Repair Price — 2nd',
+  'WFBE_C_BASE_HQ_REPAIR_PRICE_3RD':           'Repair Price — 3rd',
+  'WFBE_C_BASE_HQ_REPAIR_PRICE_CASH':          'Repair Price — Cash Buyout',
+  'WFBE_C_STRUCTURES_MAX':                      'Max Structures per Side',
+  'TEAM_SKILL_TICKS_WEST':                      'Skill Ticks — West',
+  'TEAM_SKILL_TICKS_EAST':                      'Skill Ticks — East',
+  'TEAM_SKILL_TICKS_DIFF_THRESHOLD':            'Skill Diff Threshold',
+  'TEAM_SKILL_TICKS_COMPENSATION_MULTIPLIER':   'Compensation Multiplier',
+  'TEAM_SKILL_TICKS_END_THRESHOLD':             'End Threshold',
+  'SUPPLY_COMPENSATION_AMOUNT_WEST':            'Supply Compensation — West',
+  'SUPPLY_COMPENSATION_AMOUNT_EAST':            'Supply Compensation — East',
+  'PLAYER_NUMBER_DIFFERENCE_MODIFIER':          'Player Difference Modifier',
+  'TEAM_WEST_TICKS_NO_PLAYERS':                'No-Players Ticks — West',
+  'TEAM_EAST_TICKS_NO_PLAYERS':                'No-Players Ticks — East',
+  'SUPPLY_INCOME_TICK_MODIFIER_MULTIPLIER':     'Income Tick Modifier',
+  'WFBE_SUPPLY_MISSION_SCORE_COEF':            'Mission Score Coefficient',
+  'WFBE_UPGRADE_SCORE_COEF':                   'Upgrade Score Coefficient',
+};
+
+// Keys that get a <select> instead of number input
+const SELECT_FIELDS = {
+  'WFBE_C_ECONOMY_INCOME_SYSTEM': [
+    {v:1, l:'1 — Proportional to team size'},
+    {v:2, l:'2 — Equal per side'},
+    {v:3, l:'3 — Town supply value'},
+    {v:4, l:'4 — Hybrid (town + team)'},
+  ],
+  'WFBE_C_ECONOMY_CURRENCY_SYSTEM': [
+    {v:0, l:'0 — Standard (funds only)'},
+    {v:1, l:'1 — Dual currency'},
+  ],
+  'WFBE_C_ECONOMY_SUPPLY_SYSTEM': [
+    {v:0, l:'0 — Disabled'},
+    {v:1, l:'1 — Enabled'},
+  ],
+  'WFBE_C_AI_COMMANDER_ENABLED': [
+    {v:0, l:'0 — Disabled'},
+    {v:1, l:'1 — Enabled'},
+  ],
+};
+
+// ============================================================
+// Utility helpers
+// ============================================================
+function isArray(v){ return Array.isArray(v); }
+
+function getStep(key){
+  // Float fields
+  if(key.includes('COEF') || key.includes('DIVIDED') || key.includes('MODIFIER') || key.includes('MULTIPLIER'))
+    return 0.01;
+  return 1;
+}
+
+function getMin(key){
+  if(key.includes('COEF') || key.includes('DIVIDED')) return 0;
+  return 0;
+}
+
+// ============================================================
+// Render helpers
+// ============================================================
+function makeNumberInput(key, val, arrayIdx){
+  const inp = document.createElement('input');
+  inp.type = 'number';
+  inp.value = val;
+  inp.step = getStep(key);
+  inp.min = getMin(key);
+  if(arrayIdx !== undefined) inp.classList.add('array-el');
+
+  inp.addEventListener('change', () => {
+    const num = parseFloat(inp.value);
+    if(isNaN(num)) return;
+    if(arrayIdx !== undefined){
+      MODEL.economy[key][arrayIdx] = num;
+    } else {
+      MODEL.economy[key] = num;
+    }
+    if(key === 'WFBE_C_ECONOMY_INCOME_COEF') updateIncomePreview();
+  });
+  return inp;
+}
+
+function makeSelectInput(key, val){
+  const sel = document.createElement('select');
+  const opts = SELECT_FIELDS[key];
+  opts.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.v;
+    opt.textContent = o.l;
+    if(o.v == val) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', () => {
+    MODEL.economy[key] = parseInt(sel.value);
+  });
+  return sel;
+}
+
+function makeArrayEditor(key, arr){
+  const row = document.createElement('div');
+  row.className = 'array-row';
+  arr.forEach((v, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'array-cell';
+    const inp = makeNumberInput(key, v, i);
+    const idx = document.createElement('div');
+    idx.className = 'array-idx';
+    idx.textContent = '[' + i + ']';
+    cell.appendChild(inp);
+    cell.appendChild(idx);
+    row.appendChild(cell);
+  });
+  return row;
+}
+
+function renderField(container, key, val){
+  const div = document.createElement('div');
+  div.className = 'field';
+  div.dataset.econKey = key;
+
+  const lbl = document.createElement('label');
+  const friendly = KEY_LABELS[key] || key;
+  lbl.textContent = friendly;
+  const keySpan = document.createElement('span');
+  keySpan.className = 'key';
+  keySpan.textContent = key;
+  lbl.appendChild(keySpan);
+  div.appendChild(lbl);
+
+  if(isArray(val)){
+    div.appendChild(makeArrayEditor(key, val));
+  } else if(SELECT_FIELDS[key]){
+    div.appendChild(makeSelectInput(key, val));
+  } else {
+    div.appendChild(makeNumberInput(key, val));
+  }
+
+  container.appendChild(div);
+}
+
+function renderGroup(group, econData){
+  const card = document.createElement('div');
+  card.className = 'group-card';
+  card.id = 'group-' + group.id;
+
+  const head = document.createElement('div');
+  head.className = 'group-head';
+  const h3 = document.createElement('h3');
+  h3.textContent = group.label;
+  const cnt = document.createElement('span');
+  cnt.className = 'count';
+  cnt.textContent = group.keys.length + ' field' + (group.keys.length !== 1 ? 's' : '');
+  head.appendChild(h3);
+  head.appendChild(cnt);
+  card.appendChild(head);
+
+  const body = document.createElement('div');
+  body.className = 'group-body';
+
+  // Detect layout hint: grid2 for pairs (funds/supply per side), else single col
+  const usePairGrid = group.id === 'starting' || group.id === 'hqrepair';
+  if(usePairGrid){
+    const grid = document.createElement('div');
+    grid.className = group.id === 'starting' ? 'grid2' : 'grid2';
+    group.keys.forEach(k => {
+      if(k in econData) renderField(grid, k, econData[k]);
+    });
+    body.appendChild(grid);
+  } else {
+    group.keys.forEach(k => {
+      if(k in econData) renderField(body, k, econData[k]);
+    });
+  }
+
+  card.appendChild(body);
+  return card;
+}
+
+// ============================================================
+// Economy panel builder
+// ============================================================
+function buildEconomyPanel(econData){
+  const main = document.getElementById('econ-main');
+  main.innerHTML = '';
+
+  // Track assigned keys to detect "Other"
+  const assignedKeys = new Set();
+  ECONOMY_GROUPS.forEach(g => {
+    if(g.id !== 'other') g.keys.forEach(k => assignedKeys.add(k));
+  });
+
+  // Populate "Other" group with any unmatched keys
+  const otherGroup = ECONOMY_GROUPS.find(g => g.id === 'other');
+  otherGroup.keys = [];
+  Object.keys(econData).forEach(k => {
+    if(!assignedKeys.has(k)) otherGroup.keys.push(k);
+  });
+
+  // Filter groups to only those with keys present in data
+  let groupCount = 0;
+  ECONOMY_GROUPS.forEach(g => {
+    const presentKeys = g.keys.filter(k => k in econData);
+    if(presentKeys.length === 0) return;
+    const gCopy = Object.assign({}, g, {keys: presentKeys});
+    main.appendChild(renderGroup(gCopy, econData));
+    groupCount++;
+  });
+
+  // Sidebar stats
+  const total = Object.keys(econData).length;
+  const arrays = Object.values(econData).filter(isArray).length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-scalars').textContent = total - arrays;
+  document.getElementById('stat-arrays').textContent = arrays;
+  document.getElementById('stat-groups').textContent = groupCount;
+}
+
+// ============================================================
+// Income preview
+// ============================================================
+function updateIncomePreview(){
+  const svInput = document.getElementById('preview-sv');
+  const coefInput = document.getElementById('preview-coef');
+  const resultEl = document.getElementById('preview-result');
+
+  const sv = parseFloat(svInput.value) || 0;
+  const coef = MODEL.economy['WFBE_C_ECONOMY_INCOME_COEF'] || 1;
+
+  coefInput.value = coef;
+  resultEl.textContent = Math.round(sv * coef);
+}
+
+document.getElementById('preview-sv').addEventListener('input', updateIncomePreview);
+
+// ============================================================
+// Tab switching
+// ============================================================
+document.querySelectorAll('.tab-bar button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + tab).classList.add('active');
+  });
+});
+
+// ============================================================
+// Data loading
+// ============================================================
+async function loadData(){
+  try {
+    const [econResp, upgradesResp, aiResp] = await Promise.all([
+      fetch('assets/data/economy.json'),
+      fetch('assets/data/upgrades.json'),
+      fetch('assets/data/ai.json'),
+    ]);
+
+    MODEL.economy   = await econResp.json();
+    MODEL.upgrades  = await upgradesResp.json();
+    MODEL.ai        = await aiResp.json();
+
+    const statusEl = document.querySelector('#model-status b');
+    statusEl.textContent = Object.keys(MODEL.economy).length + ' econ · '
+      + Object.keys(MODEL.ai).length + ' ai · ready';
+
+    buildEconomyPanel(MODEL.economy);
+    updateIncomePreview();
+
+  } catch(err){
+    console.error('Failed to load data:', err);
+    const statusEl = document.querySelector('#model-status b');
+    statusEl.textContent = 'load error';
+    statusEl.style.color = '#c0392b';
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>
