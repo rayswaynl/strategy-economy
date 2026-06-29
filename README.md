@@ -2,7 +2,7 @@
 
 A browser-based, offline, single-file **balance & strategy tuner** for Arma 2 **WASP "Warfare"** — part of the [Miksuu's Warfare tools](https://miksuu.com/tools) suite (sibling to [WDDM](https://github.com/rayswaynl/WDDM), [Loadout Lab](https://github.com/rayswaynl/loadout-lab), [Sector & Town Planner](https://github.com/rayswaynl/sector-planner)).
 
-> Status: **in development**.
+**▶ Live: https://rayswaynl.github.io/strategy-economy/**
 
 ## What it does
 
@@ -16,7 +16,7 @@ The point is the **cross-links**: the AI's queue *is* the Tech-Tree's `AI_ORDER`
 
 ## Output
 
-Regenerates the config blocks paste-ready: `Upgrades_<faction>.sqf` (the six per-faction arrays) and the balance/AI blocks of `Init_CommonConstants.sqf`.
+Paste your `Upgrades_<faction>.sqf` and/or `Init_CommonConstants.sqf` → the tool patches **only the values you changed** in place and gives you the file back (a no-op edit returns it byte-for-byte identical — only touched constants/arrays differ). Or, in seeded mode, copy a change-list of the edited lines. AI tunables that live in the AI-commander refactor branch (not the live file) are emitted in a clearly-labelled "proposed" block, never injected silently.
 
 ## Unique core
 

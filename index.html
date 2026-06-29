@@ -1,0 +1,3283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strategy &amp; Economy — WASP Balance Tuner</title>
+<meta name="description" content="Offline single-file tuner for WASP Warfare tech-tree, economy, and AI commander constants. Edit, preview, export.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gunmetal:#14171B; --steel:#2A2F36; --steel2:#343b44;
+  --olive:#5C6536; --bone:#E7E3D6; --orange:#D9763C; --orange-deep:#B85F2A;
+  --chalk:#F2EFE8; --line:#39414b; --danger:#c0392b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:Inter,system-ui,'Segoe UI',Arial,sans-serif;background:var(--gunmetal);color:var(--bone);overflow:hidden}
+h1,h2,h3{font-family:Oswald,Inter,sans-serif;font-weight:600;letter-spacing:.5px}
+
+/* ---- Brand bar ---- */
+.brandbar{
+  height:54px;display:flex;align-items:center;gap:14px;padding:0 16px;
+  background:linear-gradient(90deg,#101317 0%,#171b20 100%);
+  border-bottom:1px solid var(--line);position:relative;z-index:5;flex-shrink:0
+}
+.brandbar .mark{width:34px;height:34px;flex:0 0 auto}
+.brandbar .word{display:flex;flex-direction:column;line-height:1}
+.brandbar .word .t1{font-family:Oswald,sans-serif;font-weight:600;font-size:19px;letter-spacing:2px;color:var(--bone)}
+.brandbar .word .t2{font-family:Oswald,sans-serif;font-weight:400;font-size:10px;letter-spacing:6px;color:var(--orange);margin-top:2px}
+.brandbar .tool{margin-left:8px;padding-left:14px;border-left:1px solid var(--line);font-size:12px;color:#9aa3ad}
+.brandbar .tool b{color:var(--bone);font-weight:600}
+.brandbar .spacer{flex:1}
+.brandbar .chip{font-family:'JetBrains Mono',monospace;font-size:10px;color:#8b939c;border:1px solid var(--line);
+  border-radius:10px;padding:3px 9px;background:#0d1014}
+.brandbar .chip b{color:var(--olive)}
+
+/* ---- Layout ---- */
+.app{display:flex;flex-direction:column;height:calc(100vh - 54px)}
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--line);background:var(--gunmetal);flex-shrink:0}
+.tab-bar button{
+  font-family:Oswald,sans-serif;font-size:13px;letter-spacing:1px;text-transform:uppercase;
+  background:none;border:none;color:#9aa3ad;cursor:pointer;padding:10px 22px;border-bottom:2px solid transparent;
+  transition:color .15s,border-color .15s
+}
+.tab-bar button:hover{color:var(--bone)}
+.tab-bar button.active{color:var(--orange);border-bottom-color:var(--orange)}
+.panels{flex:1;overflow:hidden;position:relative}
+.panel{position:absolute;inset:0;overflow:auto;padding:0;display:none}
+.panel.active{display:block}
+
+/* ---- Export bar ---- */
+.export-bar{
+  height:44px;display:flex;align-items:center;gap:10px;padding:0 16px;
+  background:#101317;border-top:1px solid var(--line);flex-shrink:0
+}
+.export-bar .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#9aa3ad;font-family:'JetBrains Mono',monospace}
+.export-bar .spacer{flex:1}
+.export-bar .note{font-size:11px;color:#636d78;font-style:italic}
+
+/* ---- Placeholder panel ---- */
+.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;color:#636d78}
+.placeholder h2{font-size:22px;color:#4a535c;letter-spacing:2px}
+.placeholder p{font-size:13px}
+
+/* ---- Tech-Tree panel ---- */
+.tech-layout{display:grid;grid-template-columns:1fr 300px;min-height:100%;gap:0}
+.tech-main{overflow:auto;padding:20px 24px}
+.tech-sidebar{background:#101317;border-left:1px solid var(--line);overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+
+.tech-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.tech-toolbar label{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#9aa3ad}
+.tech-toolbar select{width:auto;min-width:140px}
+.tech-toolbar .faction-badge{font-family:'JetBrains Mono',monospace;font-size:10px;color:#636d78;border:1px solid var(--line);border-radius:10px;padding:3px 9px;background:#0d1014}
+
+/* Upgrade rows */
+.upgrade-row{background:var(--steel);border:1px solid var(--line);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.upgrade-row.unconfigured{opacity:.5}
+.upgrade-head{
+  display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;
+  background:var(--gunmetal);border-bottom:1px solid transparent;user-select:none;
+  transition:border-color .15s
+}
+.upgrade-row.open .upgrade-head{border-bottom-color:var(--line)}
+.upgrade-head:hover{background:#1a1f26}
+.upgrade-head .u-id{font-family:'JetBrains Mono',monospace;font-size:10px;color:#636d78;width:22px;flex-shrink:0}
+.upgrade-head .u-name{font-family:Oswald,sans-serif;font-size:13px;letter-spacing:.5px;color:var(--bone);flex:1;text-transform:uppercase}
+.upgrade-head .u-badge{font-size:9px;border-radius:10px;padding:2px 7px;font-family:'JetBrains Mono',monospace}
+.u-badge.enabled{background:#1e3a1e;color:#6abf6a;border:1px solid #2e5e2e}
+.u-badge.disabled{background:#3a1e1e;color:#bf6a6a;border:1px solid #5e2e2e}
+.u-badge.expression{background:#2e2a10;color:#c8a72a;border:1px solid #5e4e10}
+.u-badge.uncfg{background:#1a1f26;color:#636d78;border:1px solid var(--line)}
+.upgrade-head .u-lvlcount{font-family:'JetBrains Mono',monospace;font-size:10px;color:#636d78;white-space:nowrap}
+.upgrade-head .u-cost-hint{font-family:'JetBrains Mono',monospace;font-size:10px;color:#9aa3ad;margin-left:auto;white-space:nowrap}
+.upgrade-head .u-chevron{font-size:10px;color:#636d78;transition:transform .15s;margin-left:6px}
+.upgrade-row.open .u-chevron{transform:rotate(90deg)}
+
+.upgrade-body{padding:14px;display:none;flex-direction:column;gap:16px}
+.upgrade-row.open .upgrade-body{display:flex}
+
+/* Enable toggle row */
+.enable-row{display:flex;align-items:center;gap:10px}
+.enable-row label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#9aa3ad;font-family:'JetBrains Mono',monospace}
+.enable-toggle{display:flex;gap:6px}
+.enable-toggle button{font-size:10px;font-family:'JetBrains Mono',monospace;padding:3px 10px;border-radius:10px;cursor:pointer;border:1px solid var(--line);background:var(--gunmetal);color:#9aa3ad;transition:all .12s}
+.enable-toggle button.active-yes{background:#1e3a1e;color:#6abf6a;border-color:#2e5e2e}
+.enable-toggle button.active-no{background:#3a1e1e;color:#bf6a6a;border-color:#5e2e2e}
+.enable-toggle button.active-expr{background:#2e2a10;color:#c8a72a;border-color:#5e4e10}
+
+/* Per-level grid */
+.level-grid-wrap{}
+.level-grid-head{display:grid;grid-template-columns:40px 1fr 1fr 1fr;gap:6px;margin-bottom:6px}
+.level-grid-head span{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#636d78;font-family:'JetBrains Mono',monospace}
+.level-grid-row{display:grid;grid-template-columns:40px 1fr 1fr 1fr;gap:6px;margin-bottom:6px;align-items:center}
+.level-grid-row .lvl-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:#9aa3ad}
+.level-grid-row input[type=number]{padding:5px 7px;font-size:12px}
+
+/* Prereq chips */
+.prereq-section{}
+.prereq-section .prereq-head{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#9aa3ad;font-family:'JetBrains Mono',monospace;margin-bottom:6px}
+.prereq-levels{display:flex;flex-direction:column;gap:6px}
+.prereq-level-row{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.prereq-lvl-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:#636d78;min-width:28px;padding-top:4px}
+.prereq-chips{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+.chip{display:inline-flex;align-items:center;gap:4px;background:#1a1f26;border:1px solid var(--line);border-radius:12px;padding:2px 8px;font-size:10px;color:#9aa3ad;font-family:'JetBrains Mono',monospace}
+.chip .chip-rm{cursor:pointer;color:#636d78;font-size:11px;line-height:1;border:none;background:none;padding:0 0 0 2px;color:#9aa3ad}
+.chip .chip-rm:hover{color:var(--danger)}
+.prereq-add{display:flex;gap:4px;align-items:center;margin-top:4px}
+.prereq-add select{width:auto;font-size:11px;padding:4px 6px}
+.prereq-add input[type=number]{width:56px;font-size:11px;padding:4px 6px}
+.prereq-add button{font-size:10px;padding:4px 10px;white-space:nowrap}
+
+/* AI Order editor */
+.ai-order-section{background:var(--steel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.ai-order-head{padding:9px 14px;background:var(--gunmetal);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.ai-order-head h3{font-family:Oswald,sans-serif;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--bone)}
+.ai-order-head .ai-count{font-size:10px;color:#636d78;font-family:'JetBrains Mono',monospace;margin-left:auto}
+.ai-order-body{padding:12px 14px}
+.ai-order-list{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;max-height:340px;overflow-y:auto}
+.ai-order-item{display:flex;align-items:center;gap:6px;background:#0d1014;border:1px solid var(--line);border-radius:5px;padding:5px 8px}
+.ai-order-item .ai-pos{font-family:'JetBrains Mono',monospace;font-size:9px;color:#636d78;width:20px;text-align:right;flex-shrink:0}
+.ai-order-item .ai-name{font-size:11px;color:var(--bone);flex:1;font-family:'JetBrains Mono',monospace}
+.ai-order-item .ai-lvl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--orange);padding:1px 6px;background:#1a1208;border:1px solid #5c3010;border-radius:8px}
+.ai-order-item .ai-btns{display:flex;gap:2px;margin-left:auto}
+.ai-order-item .ai-btns button{font-size:10px;padding:2px 5px;cursor:pointer;background:var(--steel2);border:1px solid var(--line);border-radius:3px;color:#9aa3ad}
+.ai-order-item .ai-btns button:hover{border-color:var(--orange);color:var(--orange)}
+.ai-order-add{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ai-order-add select{width:auto;flex:1;min-width:120px;font-size:11px;padding:5px 7px}
+.ai-order-add input[type=number]{width:60px;font-size:11px;padding:5px 7px}
+.ai-order-add button{white-space:nowrap}
+
+/* Sidebar AI summary */
+.ai-summary-card{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--steel)}
+.ai-summary-card h4{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--orange);margin-bottom:6px;font-family:Oswald,sans-serif}
+.ai-summary-card p{font-size:11px;color:#9aa3ad;line-height:1.6}
+.ai-summary-stats .stat-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--line)}
+.ai-summary-stats .stat-row:last-child{border-bottom:none}
+.ai-summary-stats .sk{font-size:10px;color:#9aa3ad;font-family:'JetBrains Mono',monospace}
+.ai-summary-stats .sv{font-size:12px;color:var(--bone);font-weight:600}
+
+/* ---- Economy panel ---- */
+.econ-layout{display:grid;grid-template-columns:1fr 320px;min-height:100%;gap:0}
+.econ-main{overflow:auto;padding:20px 24px}
+.econ-sidebar{background:#101317;border-left:1px solid var(--line);overflow:auto;padding:16px}
+
+.group-card{background:var(--steel);border:1px solid var(--line);border-radius:8px;margin-bottom:18px;overflow:hidden}
+.group-card .group-head{
+  padding:9px 14px;background:var(--gunmetal);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:8px
+}
+.group-card .group-head h3{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--bone)}
+.group-card .group-head .count{font-size:10px;color:#636d78;font-family:'JetBrains Mono',monospace;margin-left:auto}
+.group-body{padding:14px 14px 10px}
+
+/* ---- Form elements ---- */
+.field{margin-bottom:12px}
+.field label{
+  display:block;font-size:10px;text-transform:uppercase;letter-spacing:.6px;
+  color:#9aa3ad;margin-bottom:4px;font-family:'JetBrains Mono',monospace
+}
+.field label .key{color:#636d78;font-size:9px;display:block;margin-top:1px;text-transform:none;letter-spacing:0}
+input[type=number],select{
+  width:100%;background:var(--gunmetal);border:1px solid var(--line);color:var(--bone);
+  border-radius:5px;padding:6px 8px;outline:none;font-family:inherit;font-size:13px
+}
+input[type=number]:focus,select:focus{border-color:var(--orange)}
+input[type=number].array-el{width:64px;flex-shrink:0}
+
+.array-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.array-row .array-idx{font-size:9px;color:#636d78;font-family:'JetBrains Mono',monospace;text-align:center;margin-top:2px}
+.array-cell{display:flex;flex-direction:column;align-items:center}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+/* ---- Income preview widget ---- */
+.income-preview{
+  background:var(--steel);border:1px solid var(--orange);border-radius:8px;padding:14px;margin-bottom:16px
+}
+.income-preview h3{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--orange);margin-bottom:10px;font-family:Oswald,sans-serif}
+.income-preview .formula{font-family:'JetBrains Mono',monospace;font-size:11px;color:#9aa3ad;margin-bottom:10px;background:#0d1014;padding:6px 8px;border-radius:4px}
+.income-preview .formula b{color:var(--orange)}
+.income-preview .preview-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.income-preview .preview-row label{font-size:11px;color:#9aa3ad;white-space:nowrap;font-family:'JetBrains Mono',monospace}
+.income-preview .preview-row input{flex:1;min-width:60px}
+.income-preview .result{
+  margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:14px;
+  color:var(--bone);text-align:center;padding:8px;background:var(--gunmetal);border-radius:4px
+}
+.income-preview .result b{color:var(--orange);font-size:18px}
+
+/* ---- Sidebar info ---- */
+.info-card{border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:12px;background:var(--steel)}
+.info-card h4{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--orange);margin-bottom:6px;font-family:Oswald,sans-serif}
+.info-card p{font-size:11px;color:#9aa3ad;line-height:1.6}
+.info-card code{background:#0d1014;padding:1px 4px;border-radius:3px;color:var(--orange);font-family:'JetBrains Mono',monospace;font-size:10px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--line)}
+.stat-row:last-child{border-bottom:none}
+.stat-row .sk{font-size:10px;color:#9aa3ad;font-family:'JetBrains Mono',monospace}
+.stat-row .sv{font-size:12px;color:var(--bone);font-weight:600}
+.badge-olive{display:inline-block;font-size:9px;background:var(--olive);color:var(--chalk);padding:1px 6px;border-radius:10px;margin-left:6px}
+
+/* ---- AI Commander panel ---- */
+.ai-panel-layout{display:grid;grid-template-columns:1fr 340px;min-height:100%;gap:0}
+.ai-panel-main{overflow:auto;padding:20px 24px}
+.ai-panel-sidebar{background:#101317;border-left:1px solid var(--line);overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+
+.ai-group-card{background:var(--steel);border:1px solid var(--line);border-radius:8px;margin-bottom:18px;overflow:hidden}
+.ai-group-card .ai-group-head{padding:9px 14px;background:var(--gunmetal);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.ai-group-card .ai-group-head h3{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--bone)}
+.ai-group-card .ai-group-head .ai-g-count{font-size:10px;color:#636d78;font-family:'JetBrains Mono',monospace;margin-left:auto}
+.ai-group-body{padding:14px 14px 10px}
+
+/* Read-only display fields */
+.field-readonly input,.field-readonly select{background:#0d1014;color:#9aa3ad;cursor:not-allowed;border-color:#2a2f36}
+.field-readonly label{color:#636d78}
+.readonly-note{font-size:9px;font-family:'JetBrains Mono',monospace;color:#D9763C;display:block;margin-top:2px;font-style:italic;text-transform:none;letter-spacing:0}
+
+/* Shared-array badge */
+.shared-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-family:'JetBrains Mono',monospace;background:#1a2210;color:#8abf5a;border:1px solid #3a5c1a;border-radius:10px;padding:1px 7px;margin-left:6px;cursor:pointer;vertical-align:middle}
+.shared-badge:hover{border-color:var(--orange);color:var(--orange)}
+
+/* Seed preview widget */
+.seed-preview{background:var(--steel);border:1px solid var(--orange);border-radius:8px;padding:14px;margin-bottom:16px}
+.seed-preview h3{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--orange);margin-bottom:10px;font-family:Oswald,sans-serif}
+.seed-preview .seed-multiplier-row{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.seed-preview .seed-multiplier-row label{font-size:11px;color:#9aa3ad;white-space:nowrap;font-family:'JetBrains Mono',monospace}
+.seed-preview .seed-multiplier-row input{flex:1;min-width:60px}
+.seed-preview .seed-note{font-size:9px;color:#636d78;font-style:italic;margin-bottom:10px}
+.seed-preview .seed-row{display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:var(--gunmetal);border-radius:4px;margin-bottom:4px}
+.seed-preview .seed-row .seed-side{font-family:'JetBrains Mono',monospace;font-size:10px;color:#9aa3ad}
+.seed-preview .seed-row .seed-val{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--orange);font-weight:600}
+
+/* AI queue panel-C mirror */
+.ai-queue-mirror{background:var(--steel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.ai-queue-mirror .aqm-head{padding:9px 14px;background:var(--gunmetal);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.ai-queue-mirror .aqm-head h3{font-family:Oswald,sans-serif;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--bone)}
+.ai-queue-mirror .aqm-head .aqm-faction-sel{margin-left:auto;font-size:11px;background:var(--gunmetal);border:1px solid var(--line);color:var(--bone);border-radius:4px;padding:2px 6px;font-family:'JetBrains Mono',monospace;cursor:pointer}
+.ai-queue-mirror .aqm-body{padding:12px 14px}
+.ai-queue-mirror .aqm-count{font-size:10px;color:#636d78;font-family:'JetBrains Mono',monospace;margin-bottom:8px}
+.aqm-item{display:flex;align-items:center;gap:6px;background:#0d1014;border:1px solid var(--line);border-radius:5px;padding:5px 8px;margin-bottom:4px}
+.aqm-item .aqm-pos{font-family:'JetBrains Mono',monospace;font-size:9px;color:#636d78;width:20px;text-align:right;flex-shrink:0}
+.aqm-item .aqm-name{font-size:11px;color:var(--bone);flex:1;font-family:'JetBrains Mono',monospace}
+.aqm-item .aqm-lvl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--orange);padding:1px 6px;background:#1a1208;border:1px solid #5c3010;border-radius:8px}
+.aqm-item .aqm-hint{font-family:'JetBrains Mono',monospace;font-size:9px;color:#8abf5a;margin-left:auto;white-space:nowrap}
+.aqm-item .aqm-btns{display:flex;gap:2px}
+.aqm-item .aqm-btns button{font-size:10px;padding:2px 5px;cursor:pointer;background:var(--steel2);border:1px solid var(--line);border-radius:3px;color:#9aa3ad}
+.aqm-item .aqm-btns button:hover{border-color:var(--orange);color:var(--orange)}
+.aqm-add-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.aqm-add-row select{width:auto;flex:1;min-width:120px;font-size:11px;padding:5px 7px}
+.aqm-add-row input[type=number]{width:60px;font-size:11px;padding:5px 7px}
+.aqm-add-row button{white-space:nowrap}
+.aqm-empty{font-size:11px;color:#636d78;font-style:italic;text-align:center;padding:16px 0}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--steel2);border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---- Buttons ---- */
+button.primary{
+  cursor:pointer;background:var(--orange);border:1px solid var(--orange-deep);
+  color:#1a1208;font-weight:600;border-radius:5px;padding:7px 14px;font-size:12px;font-family:inherit
+}
+button.primary:hover{background:var(--orange-deep)}
+button.sec{
+  cursor:pointer;background:var(--steel2);border:1px solid var(--line);
+  color:var(--bone);border-radius:5px;padding:7px 14px;font-size:12px;font-family:inherit
+}
+button.sec:hover{border-color:var(--orange);color:var(--orange)}
+
+/* ---- Export drawer ---- */
+.export-drawer{
+  position:fixed;inset:0;z-index:100;display:none;flex-direction:column;
+  background:rgba(10,12,14,.7);backdrop-filter:blur(2px);
+}
+.export-drawer.open{display:flex}
+.export-pane{
+  margin:auto;width:min(860px,96vw);max-height:90vh;background:var(--gunmetal);
+  border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;overflow:hidden
+}
+.export-pane-head{
+  display:flex;align-items:center;gap:12px;padding:12px 18px;
+  background:#101317;border-bottom:1px solid var(--line);flex-shrink:0
+}
+.export-pane-head h2{font-family:Oswald,sans-serif;font-size:16px;letter-spacing:1px;color:var(--bone);text-transform:uppercase}
+.export-pane-head .ep-close{margin-left:auto;font-size:20px;background:none;border:none;color:#9aa3ad;cursor:pointer;line-height:1}
+.export-pane-head .ep-close:hover{color:var(--bone)}
+.export-pane-body{overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:20px}
+
+/* Paste source section */
+.ep-section{background:var(--steel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.ep-section-head{padding:9px 14px;background:var(--gunmetal);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.ep-section-head h3{font-family:Oswald,sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--bone);flex:1}
+.ep-section-body{padding:12px 14px}
+.ep-paste-hint{font-size:11px;color:#636d78;font-family:'JetBrains Mono',monospace;margin-bottom:8px}
+.ep-paste-area{
+  width:100%;min-height:80px;max-height:140px;
+  background:#0d1014;border:1px solid var(--line);border-radius:5px;
+  color:#9aa3ad;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.5;
+  padding:6px 8px;resize:vertical;outline:none
+}
+.ep-paste-area:focus{border-color:var(--orange)}
+.ep-parse-status{font-size:10px;font-family:'JetBrains Mono',monospace;margin-top:6px;display:flex;align-items:center;gap:6px}
+.ep-parse-status .st-ok{color:#6abf6a}
+.ep-parse-status .st-err{color:var(--danger)}
+.ep-parse-status .st-none{color:#636d78}
+
+/* Output area */
+.ep-output-section{background:var(--steel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.ep-output-head{padding:9px 14px;background:var(--gunmetal);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ep-output-head h3{font-family:Oswald,sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--bone)}
+.ep-output-head .ep-out-btns{margin-left:auto;display:flex;gap:6px}
+.ep-code{
+  padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.6;
+  color:#9aa3ad;white-space:pre-wrap;word-break:break-all;max-height:320px;overflow-y:auto;
+  background:#0d1014;
+}
+.ep-code .hi-changed{color:var(--orange);background:#1a0e00;border-radius:2px;padding:0 1px}
+.ep-code .hi-proposed{color:#8abf5a;background:#102010;border-radius:2px;padding:0 1px}
+.ep-code .hi-section{color:#9aa3ad;opacity:.5}
+.ep-no-changes{font-size:11px;color:#636d78;font-style:italic;padding:12px 14px;font-family:'JetBrains Mono',monospace}
+.ep-mode-tabs{display:flex;gap:4px;margin-bottom:4px}
+.ep-mode-tab{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.8px;text-transform:uppercase;
+  background:none;border:1px solid var(--line);color:#9aa3ad;cursor:pointer;padding:4px 10px;border-radius:4px}
+.ep-mode-tab.active{background:var(--orange);color:#1a1208;border-color:var(--orange)}
+</style>
+</head>
+<body>
+
+<!-- ===== Brand bar ===== -->
+<div class="brandbar">
+  <svg class="mark" viewBox="0 0 96 96" aria-label="Miksuu's Warfare">
+    <g fill="none" stroke-width="7" stroke-linecap="square" stroke-linejoin="miter">
+      <polyline points="20,54 48,30 76,54" stroke="#D9763C"/>
+      <polyline points="20,66 48,42 76,66" stroke="#F2EFE8"/>
+      <polyline points="20,78 48,54 76,78" stroke="#5C6536"/>
+    </g>
+  </svg>
+  <div class="word">
+    <span class="t1">STRATEGY &amp; ECONOMY</span>
+    <span class="t2">WASP BALANCE TUNER</span>
+  </div>
+  <div class="tool"><b>Warfare Balance Editor</b> · tech-tree · economy · AI commander</div>
+  <div class="spacer"></div>
+  <div class="chip" id="model-status">model: <b>loading…</b></div>
+</div>
+
+<div class="app">
+
+  <!-- ===== Tab bar ===== -->
+  <div class="tab-bar">
+    <button class="active" data-tab="tech">Tech-Tree</button>
+    <button data-tab="economy">Economy</button>
+    <button data-tab="ai">AI Commander</button>
+  </div>
+
+  <!-- ===== Panels ===== -->
+  <div class="panels">
+
+    <!-- === Tech-Tree panel === -->
+    <div class="panel active" id="panel-tech">
+      <div class="tech-layout">
+
+        <!-- Main: upgrade list -->
+        <div class="tech-main">
+          <!-- Toolbar: faction selector -->
+          <div class="tech-toolbar">
+            <label>Faction</label>
+            <select id="tech-faction-sel"></select>
+            <span class="faction-badge" id="tech-faction-badge">— upgrades</span>
+          </div>
+          <!-- Upgrade list rendered by JS -->
+          <div id="tech-upgrade-list"></div>
+        </div>
+
+        <!-- Sidebar: AI order + stats -->
+        <div class="tech-sidebar">
+
+          <!-- AI Order editor -->
+          <div class="ai-order-section">
+            <div class="ai-order-head">
+              <h3>AI Upgrade Queue</h3>
+              <span class="ai-count" id="ai-order-count">0 steps</span>
+            </div>
+            <div class="ai-order-body">
+              <div class="ai-order-list" id="ai-order-list"></div>
+              <div class="ai-order-add">
+                <select id="ai-add-upgrade-sel"></select>
+                <input type="number" id="ai-add-level" min="1" value="1" title="Level">
+                <button class="primary" id="ai-add-btn">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Faction stats card -->
+          <div class="ai-summary-card">
+            <h4>Faction Summary</h4>
+            <div class="ai-summary-stats" id="tech-faction-stats">
+              <div class="stat-row"><span class="sk">Configured upgrades</span><span class="sv" id="stat-tech-configured">—</span></div>
+              <div class="stat-row"><span class="sk">Enabled</span><span class="sv" id="stat-tech-enabled">—</span></div>
+              <div class="stat-row"><span class="sk">Expression (null)</span><span class="sv" id="stat-tech-expr">—</span></div>
+              <div class="stat-row"><span class="sk">AI queue steps</span><span class="sv" id="stat-tech-aiorder">—</span></div>
+            </div>
+          </div>
+
+          <!-- Help card -->
+          <div class="ai-summary-card">
+            <h4>Data Layout</h4>
+            <p>
+              Each upgrade has up to 22 slots (0–21).<br>
+              Factions with 20-entry arrays lack <code>AIRAAM</code>, <code>AAR</code>, <code>UNITCOST</code> — shown as not configured.<br><br>
+              <code>null</code> enabled = runtime expression; treated as "leave as-is" by the game.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- === Economy panel === -->
+    <div class="panel" id="panel-economy">
+      <div class="econ-layout">
+
+        <!-- Main scroll area -->
+        <div class="econ-main" id="econ-main">
+          <!-- Groups rendered by JS -->
+        </div>
+
+        <!-- Sidebar -->
+        <div class="econ-sidebar">
+          <!-- Income preview widget -->
+          <div class="income-preview">
+            <h3>Income Preview</h3>
+            <div class="formula">income = round(<b>sampleSV</b> × <b>INCOME_COEF</b>)</div>
+            <div class="preview-row">
+              <label>Sample Town SV</label>
+              <input type="number" id="preview-sv" value="100" min="0" step="10">
+            </div>
+            <div class="preview-row">
+              <label>INCOME_COEF</label>
+              <input type="number" id="preview-coef" readonly style="background:#0d1014;color:var(--orange)">
+            </div>
+            <div class="result">Income = <b id="preview-result">—</b></div>
+          </div>
+
+          <!-- Constant count info -->
+          <div class="info-card">
+            <h4>Economy Constants</h4>
+            <div class="stat-row"><span class="sk">Total loaded</span><span class="sv" id="stat-total">—</span></div>
+            <div class="stat-row"><span class="sk">Scalars</span><span class="sv" id="stat-scalars">—</span></div>
+            <div class="stat-row"><span class="sk">Arrays</span><span class="sv" id="stat-arrays">—</span></div>
+            <div class="stat-row"><span class="sk">Groups</span><span class="sv" id="stat-groups">—</span></div>
+          </div>
+
+          <div class="info-card">
+            <h4>Income System Options</h4>
+            <p>
+              <code>1</code> Proportional to team size<br>
+              <code>2</code> Equal per side<br>
+              <code>3</code> Town supply value<br>
+              <code>4</code> Hybrid (town + team)
+            </p>
+          </div>
+
+          <div class="info-card">
+            <h4>HQ Repair Tiers</h4>
+            <p>
+              1st free repair → <code>PRICE_1ST</code><br>
+              2nd repair → <code>PRICE_2ND</code><br>
+              3rd repair → <code>PRICE_3RD</code><br>
+              Cash buyout → <code>PRICE_CASH</code>
+            </p>
+          </div>
+
+          <div class="info-card">
+            <h4>Array Fields</h4>
+            <p>Arrays hold per-level values. Each element maps to an upgrade level or tier. Edit individual cells inline.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- === AI Commander panel === -->
+    <div class="panel" id="panel-ai">
+      <div class="ai-panel-layout">
+
+        <!-- Main: AI constant groups -->
+        <div class="ai-panel-main" id="ai-panel-main">
+          <!-- Rendered by JS -->
+        </div>
+
+        <!-- Sidebar: seed preview + AI queue mirror -->
+        <div class="ai-panel-sidebar">
+
+          <!-- Fund seed preview -->
+          <div class="seed-preview" id="seed-preview">
+            <h3>AI Fund Seed Preview</h3>
+            <div class="seed-note">Lives in Init_Server.sqf · seed = round(FUNDS_START × multiplier)</div>
+            <div class="seed-multiplier-row">
+              <label>Multiplier</label>
+              <input type="number" id="seed-multiplier" value="1.5" min="0.1" max="10" step="0.1">
+            </div>
+            <div id="seed-rows"><!-- per-side rows rendered by JS --></div>
+          </div>
+
+          <!-- AI queue mirror (same data as Panel A) -->
+          <div class="ai-queue-mirror">
+            <div class="aqm-head">
+              <h3>AI Upgrade Queue</h3>
+              <select id="ai-panel-faction-sel" class="aqm-faction-sel" title="Synced with Tech-Tree faction"></select>
+            </div>
+            <div class="aqm-body">
+              <div class="aqm-count" id="aqm-count">0 steps</div>
+              <div id="aqm-list"><!-- rendered by JS --></div>
+              <div class="aqm-add-row">
+                <select id="aqm-add-sel"></select>
+                <input type="number" id="aqm-add-level" min="1" value="1" title="Level">
+                <button class="primary" id="aqm-add-btn">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Info card -->
+          <div class="info-card">
+            <h4>Cross-Panel Links</h4>
+            <p>
+              The AI queue here is the <em>same data object</em> as the Tech-Tree queue — edits in either panel reflect in both.<br><br>
+              Arrays marked <span class="shared-badge">shared</span> live in the Economy panel — click the badge to scroll there.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== Export bar ===== -->
+  <div class="export-bar">
+    <span class="lbl">Export</span>
+    <button class="primary" id="btn-open-export-upgrades">Upgrades_&lt;F&gt;.sqf</button>
+    <button class="sec" id="btn-open-export-constants">Init_CommonConstants.sqf</button>
+    <div class="spacer"></div>
+    <span class="note" id="export-bar-note">Paste source → patch-in-place (no-op = byte-identical) · or get change-list</span>
+  </div>
+
+</div>
+
+<!-- ===== Export Drawer ===== -->
+<div class="export-drawer" id="export-drawer" role="dialog" aria-modal="true">
+  <div class="export-pane" id="export-pane">
+    <div class="export-pane-head">
+      <h2 id="ep-title">Export</h2>
+      <button class="ep-close" id="ep-close" title="Close">✕</button>
+    </div>
+    <div class="export-pane-body">
+
+      <!-- Mode tabs -->
+      <div class="ep-mode-tabs">
+        <button class="ep-mode-tab active" data-epmode="patch" id="ep-tab-patch">Paste &amp; Patch</button>
+        <button class="ep-mode-tab" data-epmode="changelist" id="ep-tab-changelist">Change-list</button>
+      </div>
+
+      <!-- Paste source (only in patch mode) -->
+      <div class="ep-section" id="ep-paste-section">
+        <div class="ep-section-head">
+          <h3 id="ep-paste-title">Paste source file</h3>
+        </div>
+        <div class="ep-section-body">
+          <div class="ep-paste-hint" id="ep-paste-hint">Paste the contents of the target SQF file below. Export will patch only the values you changed, leaving all other bytes (expressions, comments) untouched. A no-op export is byte-identical to the input.</div>
+          <textarea class="ep-paste-area" id="ep-paste-area" spellcheck="false" placeholder="Paste file contents here…"></textarea>
+          <div class="ep-parse-status" id="ep-parse-status">
+            <span class="st-none">No source pasted — will generate change-list instead</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Output -->
+      <div class="ep-output-section" id="ep-output-section">
+        <div class="ep-output-head">
+          <h3 id="ep-output-title">Output</h3>
+          <div class="ep-out-btns">
+            <button class="sec" id="ep-btn-generate">Generate</button>
+            <button class="sec" id="ep-btn-copy" title="Copy to clipboard">Copy</button>
+            <button class="sec" id="ep-btn-download" title="Download file">Download</button>
+          </div>
+        </div>
+        <div class="ep-code" id="ep-output-code"><span style="color:#636d78;font-style:italic">Click Generate to produce output.</span></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ============================================================
+// Model — holds all 3 JSON datasets
+// ============================================================
+const MODEL = {
+  economy: {},
+  upgrades: {},
+  ai: {}
+};
+
+// Expose for Playwright verification
+window.MODEL = MODEL;
+
+// ============================================================
+// Grouping definitions for economy constants
+// ============================================================
+const ECONOMY_GROUPS = [
+  {
+    id: 'starting',
+    label: 'Starting Resources',
+    keys: [
+      'WFBE_C_ECONOMY_FUNDS_START_WEST',
+      'WFBE_C_ECONOMY_FUNDS_START_EAST',
+      'WFBE_C_ECONOMY_FUNDS_START_GUER',
+      'WFBE_C_ECONOMY_SUPPLY_START_WEST',
+      'WFBE_C_ECONOMY_SUPPLY_START_EAST',
+      'WFBE_C_ECONOMY_SUPPLY_START_GUER',
+    ]
+  },
+  {
+    id: 'income',
+    label: 'Income Engine',
+    keys: [
+      'WFBE_C_ECONOMY_INCOME_SYSTEM',
+      'WFBE_C_ECONOMY_CURRENCY_SYSTEM',
+      'WFBE_C_ECONOMY_SUPPLY_SYSTEM',
+      'WFBE_C_ECONOMY_INCOME_INTERVAL',
+      'WFBE_C_ECONOMY_INCOME_COEF',
+      'WFBE_C_ECONOMY_INCOME_DIVIDED',
+      'WFBE_C_ECONOMY_INCOME_PERCENT_MAX',
+      'WFBE_C_ECONOMY_SUPPLY_MAX_TEAM_LIMIT',
+      'WFBE_C_MAX_ECONOMY_SUPPLY_LIMIT',
+      'WFBE_C_ECONOMY_SUPPLY_MISSION_MULTIPLIER',
+      'WFBE_C_ECONOMY_SUPPLY_TIME_INCREASE_DELAY',
+    ]
+  },
+  {
+    id: 'rates',
+    label: 'Supply Rates (Arrays)',
+    keys: [
+      'WFBE_C_TOWNS_SUPPLY_LEVELS_TIME',
+      'WFBE_C_TOWNS_SUPPLY_LEVELS_TRUCK',
+      'WFBE_C_ARTILLERY_INTERVALS',
+      'WFBE_C_RESPAWN_RANGES',
+    ]
+  },
+  {
+    id: 'support',
+    label: 'Support & Crew Prices',
+    keys: [
+      'WFBE_C_UNITS_SUPPORT_RANGE',
+      'WFBE_C_UNITS_CREW_COST',
+      'WFBE_C_UNITS_SUPPORT_HEAL_PRICE',
+      'WFBE_C_UNITS_SUPPORT_HEAL_TIME',
+      'WFBE_C_UNITS_SUPPORT_REARM_PRICE',
+      'WFBE_C_UNITS_SUPPORT_REARM_TIME',
+      'WFBE_C_UNITS_SUPPORT_REFUEL_PRICE',
+      'WFBE_C_UNITS_SUPPORT_REFUEL_TIME',
+      'WFBE_C_UNITS_SUPPORT_REPAIR_PRICE',
+      'WFBE_C_UNITS_SUPPORT_REPAIR_TIME',
+      'WFBE_C_PLAYERS_GEAR_SELL_COEF',
+    ]
+  },
+  {
+    id: 'hqrepair',
+    label: 'HQ Repair',
+    keys: [
+      'WFBE_C_BASE_HQ_REPAIR_PRICE_WEST',
+      'WFBE_C_BASE_HQ_REPAIR_PRICE_EAST',
+      'WFBE_C_BASE_HQ_REPAIR_PRICE_GUER',
+      'WFBE_C_BASE_HQ_REPAIR_COUNT_WEST',
+      'WFBE_C_BASE_HQ_REPAIR_COUNT_EAST',
+      'WFBE_C_BASE_HQ_REPAIR_COUNT_GUER',
+      'WFBE_C_BASE_HQ_REPAIR_PRICE_1ST',
+      'WFBE_C_BASE_HQ_REPAIR_PRICE_2ND',
+      'WFBE_C_BASE_HQ_REPAIR_PRICE_3RD',
+      'WFBE_C_BASE_HQ_REPAIR_PRICE_CASH',
+    ]
+  },
+  {
+    id: 'structs',
+    label: 'Structure Caps',
+    keys: [
+      'WFBE_C_STRUCTURES_MAX',
+    ]
+  },
+  {
+    id: 'antistack',
+    label: 'Anti-Stack Tuning',
+    keys: [
+      'TEAM_SKILL_TICKS_WEST',
+      'TEAM_SKILL_TICKS_EAST',
+      'TEAM_SKILL_TICKS_DIFF_THRESHOLD',
+      'TEAM_SKILL_TICKS_COMPENSATION_MULTIPLIER',
+      'TEAM_SKILL_TICKS_END_THRESHOLD',
+      'SUPPLY_COMPENSATION_AMOUNT_WEST',
+      'SUPPLY_COMPENSATION_AMOUNT_EAST',
+      'PLAYER_NUMBER_DIFFERENCE_MODIFIER',
+      'TEAM_WEST_TICKS_NO_PLAYERS',
+      'TEAM_EAST_TICKS_NO_PLAYERS',
+      'SUPPLY_INCOME_TICK_MODIFIER_MULTIPLIER',
+      'WFBE_SUPPLY_MISSION_SCORE_COEF',
+      'WFBE_UPGRADE_SCORE_COEF',
+    ]
+  },
+  // Catch-all — populated at runtime
+  {
+    id: 'other',
+    label: 'Other',
+    keys: []
+  }
+];
+
+// Human-readable labels (short names)
+const KEY_LABELS = {
+  'WFBE_C_ECONOMY_FUNDS_START_WEST':            'Funds Start — West',
+  'WFBE_C_ECONOMY_FUNDS_START_EAST':            'Funds Start — East',
+  'WFBE_C_ECONOMY_FUNDS_START_GUER':            'Funds Start — Guerrilla',
+  'WFBE_C_ECONOMY_SUPPLY_START_WEST':           'Supply Start — West',
+  'WFBE_C_ECONOMY_SUPPLY_START_EAST':           'Supply Start — East',
+  'WFBE_C_ECONOMY_SUPPLY_START_GUER':           'Supply Start — Guerrilla',
+  'WFBE_C_ECONOMY_INCOME_SYSTEM':               'Income System',
+  'WFBE_C_ECONOMY_CURRENCY_SYSTEM':             'Currency System',
+  'WFBE_C_ECONOMY_SUPPLY_SYSTEM':               'Supply System',
+  'WFBE_C_ECONOMY_INCOME_INTERVAL':             'Income Interval (s)',
+  'WFBE_C_ECONOMY_INCOME_COEF':                 'Income Coefficient',
+  'WFBE_C_ECONOMY_INCOME_DIVIDED':              'Income Divided',
+  'WFBE_C_ECONOMY_INCOME_PERCENT_MAX':          'Income % Max',
+  'WFBE_C_ECONOMY_SUPPLY_MAX_TEAM_LIMIT':       'Supply Max Team Limit',
+  'WFBE_C_MAX_ECONOMY_SUPPLY_LIMIT':            'Max Economy Supply Limit',
+  'WFBE_C_ECONOMY_SUPPLY_MISSION_MULTIPLIER':   'Supply Mission Multiplier',
+  'WFBE_C_ECONOMY_SUPPLY_TIME_INCREASE_DELAY':  'Supply Time Increase Delay (s)',
+  'WFBE_C_TOWNS_SUPPLY_LEVELS_TIME':            'Town Supply Levels — Time',
+  'WFBE_C_TOWNS_SUPPLY_LEVELS_TRUCK':           'Town Supply Levels — Truck',
+  'WFBE_C_ARTILLERY_INTERVALS':                 'Artillery Intervals (s)',
+  'WFBE_C_RESPAWN_RANGES':                      'Respawn Ranges (m)',
+  'WFBE_C_UNITS_SUPPORT_RANGE':                 'Support Range (m)',
+  'WFBE_C_UNITS_CREW_COST':                     'Crew Cost',
+  'WFBE_C_UNITS_SUPPORT_HEAL_PRICE':            'Heal Price',
+  'WFBE_C_UNITS_SUPPORT_HEAL_TIME':             'Heal Time (s)',
+  'WFBE_C_UNITS_SUPPORT_REARM_PRICE':           'Rearm Price (per round)',
+  'WFBE_C_UNITS_SUPPORT_REARM_TIME':            'Rearm Time (s)',
+  'WFBE_C_UNITS_SUPPORT_REFUEL_PRICE':          'Refuel Price (per unit)',
+  'WFBE_C_UNITS_SUPPORT_REFUEL_TIME':           'Refuel Time (s)',
+  'WFBE_C_UNITS_SUPPORT_REPAIR_PRICE':          'Repair Price (per unit)',
+  'WFBE_C_UNITS_SUPPORT_REPAIR_TIME':           'Repair Time (s)',
+  'WFBE_C_PLAYERS_GEAR_SELL_COEF':             'Gear Sell Coefficient',
+  'WFBE_C_BASE_HQ_REPAIR_PRICE_WEST':          'HQ Repair Price — West',
+  'WFBE_C_BASE_HQ_REPAIR_PRICE_EAST':          'HQ Repair Price — East',
+  'WFBE_C_BASE_HQ_REPAIR_PRICE_GUER':          'HQ Repair Price — Guerrilla',
+  'WFBE_C_BASE_HQ_REPAIR_COUNT_WEST':          'HQ Repair Count — West',
+  'WFBE_C_BASE_HQ_REPAIR_COUNT_EAST':          'HQ Repair Count — East',
+  'WFBE_C_BASE_HQ_REPAIR_COUNT_GUER':          'HQ Repair Count — Guerrilla',
+  'WFBE_C_BASE_HQ_REPAIR_PRICE_1ST':           'Repair Price — 1st',
+  'WFBE_C_BASE_HQ_REPAIR_PRICE_2ND':           'Repair Price — 2nd',
+  'WFBE_C_BASE_HQ_REPAIR_PRICE_3RD':           'Repair Price — 3rd',
+  'WFBE_C_BASE_HQ_REPAIR_PRICE_CASH':          'Repair Price — Cash Buyout',
+  'WFBE_C_STRUCTURES_MAX':                      'Max Structures per Side',
+  'TEAM_SKILL_TICKS_WEST':                      'Skill Ticks — West',
+  'TEAM_SKILL_TICKS_EAST':                      'Skill Ticks — East',
+  'TEAM_SKILL_TICKS_DIFF_THRESHOLD':            'Skill Diff Threshold',
+  'TEAM_SKILL_TICKS_COMPENSATION_MULTIPLIER':   'Compensation Multiplier',
+  'TEAM_SKILL_TICKS_END_THRESHOLD':             'End Threshold',
+  'SUPPLY_COMPENSATION_AMOUNT_WEST':            'Supply Compensation — West',
+  'SUPPLY_COMPENSATION_AMOUNT_EAST':            'Supply Compensation — East',
+  'PLAYER_NUMBER_DIFFERENCE_MODIFIER':          'Player Difference Modifier',
+  'TEAM_WEST_TICKS_NO_PLAYERS':                'No-Players Ticks — West',
+  'TEAM_EAST_TICKS_NO_PLAYERS':                'No-Players Ticks — East',
+  'SUPPLY_INCOME_TICK_MODIFIER_MULTIPLIER':     'Income Tick Modifier',
+  'WFBE_SUPPLY_MISSION_SCORE_COEF':            'Mission Score Coefficient',
+  'WFBE_UPGRADE_SCORE_COEF':                   'Upgrade Score Coefficient',
+};
+
+// Keys that get a <select> instead of number input
+const SELECT_FIELDS = {
+  'WFBE_C_ECONOMY_INCOME_SYSTEM': [
+    {v:1, l:'1 — Proportional to team size'},
+    {v:2, l:'2 — Equal per side'},
+    {v:3, l:'3 — Town supply value'},
+    {v:4, l:'4 — Hybrid (town + team)'},
+  ],
+  'WFBE_C_ECONOMY_CURRENCY_SYSTEM': [
+    {v:0, l:'0 — Standard (funds only)'},
+    {v:1, l:'1 — Dual currency'},
+  ],
+  'WFBE_C_ECONOMY_SUPPLY_SYSTEM': [
+    {v:0, l:'0 — Disabled'},
+    {v:1, l:'1 — Enabled'},
+  ],
+  'WFBE_C_AI_COMMANDER_ENABLED': [
+    {v:0, l:'0 — Disabled'},
+    {v:1, l:'1 — Enabled'},
+  ],
+};
+
+// ============================================================
+// Utility helpers
+// ============================================================
+function isArray(v){ return Array.isArray(v); }
+
+function getStep(key){
+  // Float fields
+  if(key.includes('COEF') || key.includes('DIVIDED') || key.includes('MODIFIER') || key.includes('MULTIPLIER'))
+    return 0.01;
+  return 1;
+}
+
+function getMin(key){
+  if(key.includes('COEF') || key.includes('DIVIDED')) return 0;
+  return 0;
+}
+
+// ============================================================
+// Render helpers
+// ============================================================
+function makeNumberInput(key, val, arrayIdx){
+  const inp = document.createElement('input');
+  inp.type = 'number';
+  inp.value = val;
+  inp.step = getStep(key);
+  inp.min = getMin(key);
+  if(arrayIdx !== undefined) inp.classList.add('array-el');
+
+  inp.addEventListener('change', () => {
+    const num = parseFloat(inp.value);
+    if(isNaN(num)) return;
+    if(arrayIdx !== undefined){
+      MODEL.economy[key][arrayIdx] = num;
+    } else {
+      MODEL.economy[key] = num;
+    }
+    if(key === 'WFBE_C_ECONOMY_INCOME_COEF') updateIncomePreview();
+  });
+  return inp;
+}
+
+function makeSelectInput(key, val){
+  const sel = document.createElement('select');
+  const opts = SELECT_FIELDS[key];
+  opts.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.v;
+    opt.textContent = o.l;
+    if(o.v == val) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', () => {
+    MODEL.economy[key] = parseInt(sel.value);
+  });
+  return sel;
+}
+
+function makeArrayEditor(key, arr){
+  const row = document.createElement('div');
+  row.className = 'array-row';
+  arr.forEach((v, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'array-cell';
+    const inp = makeNumberInput(key, v, i);
+    const idx = document.createElement('div');
+    idx.className = 'array-idx';
+    idx.textContent = '[' + i + ']';
+    cell.appendChild(inp);
+    cell.appendChild(idx);
+    row.appendChild(cell);
+  });
+  return row;
+}
+
+function renderField(container, key, val){
+  const div = document.createElement('div');
+  div.className = 'field';
+  div.dataset.econKey = key;
+
+  const lbl = document.createElement('label');
+  const friendly = KEY_LABELS[key] || key;
+  lbl.textContent = friendly;
+  const keySpan = document.createElement('span');
+  keySpan.className = 'key';
+  keySpan.textContent = key;
+  lbl.appendChild(keySpan);
+  div.appendChild(lbl);
+
+  if(isArray(val)){
+    div.appendChild(makeArrayEditor(key, val));
+  } else if(SELECT_FIELDS[key]){
+    div.appendChild(makeSelectInput(key, val));
+  } else {
+    div.appendChild(makeNumberInput(key, val));
+  }
+
+  container.appendChild(div);
+}
+
+function renderGroup(group, econData){
+  const card = document.createElement('div');
+  card.className = 'group-card';
+  card.id = 'group-' + group.id;
+
+  const head = document.createElement('div');
+  head.className = 'group-head';
+  const h3 = document.createElement('h3');
+  h3.textContent = group.label;
+  const cnt = document.createElement('span');
+  cnt.className = 'count';
+  cnt.textContent = group.keys.length + ' field' + (group.keys.length !== 1 ? 's' : '');
+  head.appendChild(h3);
+  head.appendChild(cnt);
+  card.appendChild(head);
+
+  const body = document.createElement('div');
+  body.className = 'group-body';
+
+  // Detect layout hint: grid2 for pairs (funds/supply per side), else single col
+  const usePairGrid = group.id === 'starting' || group.id === 'hqrepair';
+  if(usePairGrid){
+    const grid = document.createElement('div');
+    grid.className = group.id === 'starting' ? 'grid2' : 'grid2';
+    group.keys.forEach(k => {
+      if(k in econData) renderField(grid, k, econData[k]);
+    });
+    body.appendChild(grid);
+  } else {
+    group.keys.forEach(k => {
+      if(k in econData) renderField(body, k, econData[k]);
+    });
+  }
+
+  card.appendChild(body);
+  return card;
+}
+
+// ============================================================
+// Economy panel builder
+// ============================================================
+function buildEconomyPanel(econData){
+  const main = document.getElementById('econ-main');
+  main.innerHTML = '';
+
+  // Track assigned keys to detect "Other"
+  const assignedKeys = new Set();
+  ECONOMY_GROUPS.forEach(g => {
+    if(g.id !== 'other') g.keys.forEach(k => assignedKeys.add(k));
+  });
+
+  // Populate "Other" group with any unmatched keys
+  const otherGroup = ECONOMY_GROUPS.find(g => g.id === 'other');
+  otherGroup.keys = [];
+  Object.keys(econData).forEach(k => {
+    if(!assignedKeys.has(k)) otherGroup.keys.push(k);
+  });
+
+  // Filter groups to only those with keys present in data
+  let groupCount = 0;
+  ECONOMY_GROUPS.forEach(g => {
+    const presentKeys = g.keys.filter(k => k in econData);
+    if(presentKeys.length === 0) return;
+    const gCopy = Object.assign({}, g, {keys: presentKeys});
+    main.appendChild(renderGroup(gCopy, econData));
+    groupCount++;
+  });
+
+  // Sidebar stats
+  const total = Object.keys(econData).length;
+  const arrays = Object.values(econData).filter(isArray).length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-scalars').textContent = total - arrays;
+  document.getElementById('stat-arrays').textContent = arrays;
+  document.getElementById('stat-groups').textContent = groupCount;
+}
+
+// ============================================================
+// Income preview
+// ============================================================
+function updateIncomePreview(){
+  const svInput = document.getElementById('preview-sv');
+  const coefInput = document.getElementById('preview-coef');
+  const resultEl = document.getElementById('preview-result');
+
+  const sv = parseFloat(svInput.value) || 0;
+  const coef = MODEL.economy['WFBE_C_ECONOMY_INCOME_COEF'] || 1;
+
+  coefInput.value = coef;
+  resultEl.textContent = Math.round(sv * coef);
+}
+
+document.getElementById('preview-sv').addEventListener('input', updateIncomePreview);
+
+// ============================================================
+// Tab switching
+// ============================================================
+document.querySelectorAll('.tab-bar button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + tab).classList.add('active');
+  });
+});
+
+// ============================================================
+// Data loading
+// ============================================================
+async function loadData(){
+  try {
+    const [econResp, upgradesResp, aiResp] = await Promise.all([
+      fetch('assets/data/economy.json'),
+      fetch('assets/data/upgrades.json'),
+      fetch('assets/data/ai.json'),
+    ]);
+
+    MODEL.economy   = await econResp.json();
+    MODEL.upgrades  = await upgradesResp.json();
+    MODEL.ai        = await aiResp.json();
+
+    const statusEl = document.querySelector('#model-status b');
+    statusEl.textContent = Object.keys(MODEL.economy).length + ' econ · '
+      + Object.keys(MODEL.ai).length + ' ai · ready';
+
+    buildEconomyPanel(MODEL.economy);
+    updateIncomePreview();
+    buildTechPanel();
+    buildAiPanelUI();
+
+  } catch(err){
+    console.error('Failed to load data:', err);
+    const statusEl = document.querySelector('#model-status b');
+    statusEl.textContent = 'load error';
+    statusEl.style.color = '#c0392b';
+  }
+}
+
+loadData();
+
+// ============================================================
+// Tech-Tree panel
+// ============================================================
+
+// Friendly names for upgrade IDs
+const UPGRADE_NAMES = {
+  0:'Barracks', 1:'Light Factory', 2:'Heavy Factory', 3:'Aircraft Factory',
+  4:'Paratroopers', 5:'UAV', 6:'Supply Rate', 7:'Respawn Range',
+  8:'Airlift', 9:'Flares/ECM', 10:'Artillery Timeout', 11:'ICBM',
+  12:'Fast Travel', 13:'Gear', 14:'Ammo Coin', 15:'EASA',
+  16:'Supply Paradrop', 17:'Artillery Ammo', 18:'IR Smoke',
+  19:'Air AA', 20:'Anti-Air Radar', 21:'Unit Cost'
+};
+
+// All 22 upgrade indices in order
+const ALL_UPGRADES = Array.from({length:22}, (_,i) => i);
+
+// Current faction selection
+let techFaction = null;
+
+// ---- helpers ----
+
+function upgradeName(idx){
+  return UPGRADE_NAMES[idx] || ('Upgrade '+idx);
+}
+
+// Safe access into a per-upgrade array (returns undefined if out of bounds)
+function getUpgradeEntry(arr, idx){
+  if(!arr || idx >= arr.length) return undefined;
+  return arr[idx];
+}
+
+// Get max level for upgrade at idx in current faction data
+function getMaxLevel(fd, idx){
+  const lv = getUpgradeEntry(fd.levels, idx);
+  return (lv != null && lv > 0) ? lv : null;
+}
+
+// ---- Tech panel builder ----
+
+function buildTechPanel(){
+  const factionNames = Object.keys(MODEL.upgrades.factions || {});
+  if(!factionNames.length) return;
+
+  // Populate faction selector
+  const sel = document.getElementById('tech-faction-sel');
+  sel.innerHTML = '';
+  factionNames.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f;
+    opt.textContent = f;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', () => {
+    techFaction = sel.value;
+    renderTechFaction();
+  });
+
+  // Populate AI add-upgrade selector
+  const aiSel = document.getElementById('ai-add-upgrade-sel');
+  aiSel.innerHTML = '';
+  ALL_UPGRADES.forEach(idx => {
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = idx + ' — ' + upgradeName(idx);
+    aiSel.appendChild(opt);
+  });
+
+  document.getElementById('ai-add-btn').addEventListener('click', () => {
+    const upgradeId = parseInt(document.getElementById('ai-add-upgrade-sel').value);
+    const level = parseInt(document.getElementById('ai-add-level').value) || 1;
+    const fd = MODEL.upgrades.factions[techFaction];
+    if(!fd) return;
+    fd.ai_order.push([upgradeId, level]);
+    renderAiOrder(fd);
+  });
+
+  // Default faction
+  techFaction = factionNames[0];
+  renderTechFaction();
+}
+
+function renderTechFaction(){
+  const fd = MODEL.upgrades.factions[techFaction];
+  if(!fd) return;
+
+  // Badge
+  const configured = ALL_UPGRADES.filter(i => getUpgradeEntry(fd.levels, i) != null).length;
+  document.getElementById('tech-faction-badge').textContent =
+    configured + ' / 22 upgrades configured';
+
+  // Render upgrade list
+  renderUpgradeList(fd);
+
+  // Render AI order
+  renderAiOrder(fd);
+
+  // Stats
+  updateTechStats(fd);
+}
+
+function updateTechStats(fd){
+  const configured = ALL_UPGRADES.filter(i => getUpgradeEntry(fd.levels, i) != null).length;
+  let enabled = 0, expr = 0;
+  ALL_UPGRADES.forEach(i => {
+    const e = getUpgradeEntry(fd.enabled, i);
+    if(e === true) enabled++;
+    else if(e === null) expr++;
+  });
+  document.getElementById('stat-tech-configured').textContent = configured;
+  document.getElementById('stat-tech-enabled').textContent = enabled;
+  document.getElementById('stat-tech-expr').textContent = expr;
+  document.getElementById('stat-tech-aiorder').textContent = fd.ai_order.length;
+  document.getElementById('ai-order-count').textContent = fd.ai_order.length + ' steps';
+}
+
+// ---- Upgrade list ----
+
+function renderUpgradeList(fd){
+  const container = document.getElementById('tech-upgrade-list');
+  container.innerHTML = '';
+
+  ALL_UPGRADES.forEach(upgradeIdx => {
+    const row = buildUpgradeRow(fd, upgradeIdx);
+    container.appendChild(row);
+  });
+}
+
+function buildUpgradeRow(fd, upgradeIdx){
+  const maxLevel = getMaxLevel(fd, upgradeIdx);
+  const enabledVal = getUpgradeEntry(fd.enabled, upgradeIdx); // true/false/null/undefined
+  const costs = getUpgradeEntry(fd.costs, upgradeIdx);   // [[funds,supply],...] or undefined
+  const times = getUpgradeEntry(fd.times, upgradeIdx);   // [secs,...] or undefined
+  const links = getUpgradeEntry(fd.links, upgradeIdx);   // [[prereqId,reqLvl],...] per level, or undefined
+  const isConfigured = maxLevel != null;
+
+  // Wrapper
+  const row = document.createElement('div');
+  row.className = 'upgrade-row' + (isConfigured ? '' : ' unconfigured');
+  row.id = 'upgrade-row-' + upgradeIdx;
+
+  // --- Header ---
+  const head = document.createElement('div');
+  head.className = 'upgrade-head';
+
+  const idSpan = document.createElement('span');
+  idSpan.className = 'u-id';
+  idSpan.textContent = upgradeIdx;
+
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'u-name';
+  nameSpan.textContent = upgradeName(upgradeIdx);
+
+  // Enable badge
+  const badge = document.createElement('span');
+  badge.className = 'u-badge ' + enableBadgeClass(enabledVal, isConfigured);
+  badge.textContent = enableBadgeText(enabledVal, isConfigured);
+
+  // Level count
+  const lvlCount = document.createElement('span');
+  lvlCount.className = 'u-lvlcount';
+  lvlCount.textContent = isConfigured ? maxLevel + ' lvl' : 'not configured';
+
+  // L1 cost hint
+  const costHint = document.createElement('span');
+  costHint.className = 'u-cost-hint';
+  if(isConfigured && costs && costs[0]){
+    costHint.textContent = '₣' + costs[0][0] + ' / ' + costs[0][1] + 'sup';
+  }
+
+  // Chevron
+  const chevron = document.createElement('span');
+  chevron.className = 'u-chevron';
+  chevron.textContent = '▶';
+
+  head.appendChild(idSpan);
+  head.appendChild(nameSpan);
+  head.appendChild(badge);
+  head.appendChild(lvlCount);
+  head.appendChild(costHint);
+  head.appendChild(chevron);
+
+  // Toggle expand on click
+  head.addEventListener('click', () => {
+    row.classList.toggle('open');
+  });
+
+  row.appendChild(head);
+
+  // --- Body ---
+  const body = document.createElement('div');
+  body.className = 'upgrade-body';
+
+  // Enable toggle
+  body.appendChild(buildEnableToggle(fd, upgradeIdx, badge));
+
+  if(isConfigured){
+    // Per-level grid (costs + times)
+    body.appendChild(buildLevelGrid(fd, upgradeIdx, maxLevel));
+
+    // Prereq editor
+    body.appendChild(buildPrereqEditor(fd, upgradeIdx, maxLevel));
+  } else {
+    const note = document.createElement('p');
+    note.style.cssText = 'font-size:11px;color:#636d78;font-family:JetBrains Mono,monospace';
+    note.textContent = 'This upgrade is not configured for this faction (array too short or levels=0).';
+    body.appendChild(note);
+  }
+
+  row.appendChild(body);
+  return row;
+}
+
+function enableBadgeClass(val, configured){
+  if(!configured) return 'uncfg';
+  if(val === true) return 'enabled';
+  if(val === false) return 'disabled';
+  if(val === null) return 'expression';
+  return 'uncfg'; // undefined
+}
+
+function enableBadgeText(val, configured){
+  if(!configured) return 'N/A';
+  if(val === true) return 'enabled';
+  if(val === false) return 'disabled';
+  if(val === null) return 'expr';
+  return 'N/A';
+}
+
+function buildEnableToggle(fd, upgradeIdx, badgeEl){
+  const wrap = document.createElement('div');
+  wrap.className = 'enable-row';
+
+  const lbl = document.createElement('label');
+  lbl.textContent = 'Enabled:';
+
+  const btns = document.createElement('div');
+  btns.className = 'enable-toggle';
+
+  const currentVal = getUpgradeEntry(fd.enabled, upgradeIdx);
+
+  const options = [
+    {label:'Yes', val:true,  cls:'active-yes'},
+    {label:'No',  val:false, cls:'active-no'},
+    {label:'Expr',val:null,  cls:'active-expr'},
+  ];
+
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.textContent = opt.label;
+    if(currentVal === opt.val) btn.classList.add(opt.cls);
+
+    btn.addEventListener('click', () => {
+      // Update model
+      if(upgradeIdx < fd.enabled.length){
+        fd.enabled[upgradeIdx] = opt.val;
+      }
+      // Update button states
+      btns.querySelectorAll('button').forEach(b => {
+        b.classList.remove('active-yes','active-no','active-expr');
+      });
+      btn.classList.add(opt.cls);
+      // Update badge in header
+      const configured = getMaxLevel(fd, upgradeIdx) != null;
+      badgeEl.className = 'u-badge ' + enableBadgeClass(opt.val, configured);
+      badgeEl.textContent = enableBadgeText(opt.val, configured);
+      // Update stats
+      updateTechStats(fd);
+    });
+    btns.appendChild(btn);
+  });
+
+  wrap.appendChild(lbl);
+  wrap.appendChild(btns);
+  return wrap;
+}
+
+function buildLevelGrid(fd, upgradeIdx, maxLevel){
+  const wrap = document.createElement('div');
+  wrap.className = 'level-grid-wrap';
+
+  const costs = getUpgradeEntry(fd.costs, upgradeIdx) || [];
+  const times = getUpgradeEntry(fd.times, upgradeIdx) || [];
+
+  // Header
+  const hdr = document.createElement('div');
+  hdr.className = 'level-grid-head';
+  ['Lvl','Funds','Supply','Time (s)'].forEach(t => {
+    const s = document.createElement('span');
+    s.textContent = t;
+    hdr.appendChild(s);
+  });
+  wrap.appendChild(hdr);
+
+  for(let lvl = 1; lvl <= maxLevel; lvl++){
+    const rowEl = document.createElement('div');
+    rowEl.className = 'level-grid-row';
+
+    const lvlLbl = document.createElement('span');
+    lvlLbl.className = 'lvl-label';
+    lvlLbl.textContent = 'L' + lvl;
+    rowEl.appendChild(lvlLbl);
+
+    // Funds
+    const fundsInp = makeTechNumberInput(
+      costs[lvl-1] ? costs[lvl-1][0] : 0,
+      (v) => {
+        if(!fd.costs[upgradeIdx]) fd.costs[upgradeIdx] = [];
+        if(!fd.costs[upgradeIdx][lvl-1]) fd.costs[upgradeIdx][lvl-1] = [0,0];
+        fd.costs[upgradeIdx][lvl-1][0] = v;
+        // Update cost hint in header
+        updateCostHint(fd, upgradeIdx);
+      }
+    );
+
+    // Supply
+    const supplyInp = makeTechNumberInput(
+      costs[lvl-1] ? costs[lvl-1][1] : 0,
+      (v) => {
+        if(!fd.costs[upgradeIdx]) fd.costs[upgradeIdx] = [];
+        if(!fd.costs[upgradeIdx][lvl-1]) fd.costs[upgradeIdx][lvl-1] = [0,0];
+        fd.costs[upgradeIdx][lvl-1][1] = v;
+        updateCostHint(fd, upgradeIdx);
+      }
+    );
+
+    // Time
+    const timeInp = makeTechNumberInput(
+      times[lvl-1] != null ? times[lvl-1] : 0,
+      (v) => {
+        if(upgradeIdx < fd.times.length){
+          if(!fd.times[upgradeIdx]) fd.times[upgradeIdx] = [];
+          fd.times[upgradeIdx][lvl-1] = v;
+        }
+      }
+    );
+
+    rowEl.appendChild(fundsInp);
+    rowEl.appendChild(supplyInp);
+    rowEl.appendChild(timeInp);
+    wrap.appendChild(rowEl);
+  }
+
+  return wrap;
+}
+
+function makeTechNumberInput(val, onChange){
+  const inp = document.createElement('input');
+  inp.type = 'number';
+  inp.value = val;
+  inp.min = 0;
+  inp.step = 1;
+  inp.addEventListener('change', () => {
+    const v = parseFloat(inp.value);
+    if(!isNaN(v)) onChange(v);
+  });
+  return inp;
+}
+
+function updateCostHint(fd, upgradeIdx){
+  const hint = document.querySelector('#upgrade-row-' + upgradeIdx + ' .u-cost-hint');
+  if(!hint) return;
+  const costs = getUpgradeEntry(fd.costs, upgradeIdx);
+  if(costs && costs[0]){
+    hint.textContent = '₣' + costs[0][0] + ' / ' + costs[0][1] + 'sup';
+  }
+}
+
+// Ensure fd.links[upgradeIdx] exists and has at least maxLevel slots
+function ensureLinksSlots(fd, upgradeIdx, maxLevel){
+  if(!fd.links[upgradeIdx]) fd.links[upgradeIdx] = [];
+  while(fd.links[upgradeIdx].length < maxLevel) fd.links[upgradeIdx].push([]);
+}
+
+// ---- Prereq editor ----
+
+function buildPrereqEditor(fd, upgradeIdx, maxLevel){
+  const section = document.createElement('div');
+  section.className = 'prereq-section';
+
+  const hd = document.createElement('div');
+  hd.className = 'prereq-head';
+  hd.textContent = 'Prerequisites (per level)';
+  section.appendChild(hd);
+
+  const levelsWrap = document.createElement('div');
+  levelsWrap.className = 'prereq-levels';
+  section.appendChild(levelsWrap);
+
+  function rebuildPrereqLevels(){
+    levelsWrap.innerHTML = '';
+    const links = getUpgradeEntry(fd.links, upgradeIdx) || [];
+
+    for(let lvl = 1; lvl <= maxLevel; lvl++){
+      // Each level entry is [] (no prereq) or [prereqId, reqLevel] (single pair)
+      const entry = links[lvl-1] || [];
+      const hasPrereq = Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'number';
+
+      const lvlRow = document.createElement('div');
+      lvlRow.className = 'prereq-level-row';
+
+      const lbl = document.createElement('span');
+      lbl.className = 'prereq-lvl-label';
+      lbl.textContent = 'L' + lvl;
+      lvlRow.appendChild(lbl);
+
+      const chipsWrap = document.createElement('div');
+      chipsWrap.className = 'prereq-chips';
+
+      if(hasPrereq){
+        const [preId, preReqLvl] = entry;
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = upgradeName(preId) + ' L' + preReqLvl;
+
+        const rmBtn = document.createElement('button');
+        rmBtn.className = 'chip-rm';
+        rmBtn.textContent = '×';
+        rmBtn.title = 'Remove prerequisite';
+        rmBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          ensureLinksSlots(fd, upgradeIdx, maxLevel);
+          fd.links[upgradeIdx][lvl-1] = [];
+          rebuildPrereqLevels();
+        });
+        chip.appendChild(rmBtn);
+        chipsWrap.appendChild(chip);
+      }
+
+      lvlRow.appendChild(chipsWrap);
+
+      // Add/set prereq row (only if no prereq set yet, or to replace)
+      const addRow = document.createElement('div');
+      addRow.className = 'prereq-add';
+
+      const addSel = document.createElement('select');
+      ALL_UPGRADES.filter(i => i !== upgradeIdx).forEach(i => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = i + ' — ' + upgradeName(i);
+        addSel.appendChild(opt);
+      });
+
+      const addLvlInp = document.createElement('input');
+      addLvlInp.type = 'number';
+      addLvlInp.min = 1;
+      addLvlInp.value = 1;
+
+      const addBtn = document.createElement('button');
+      addBtn.className = 'sec';
+      addBtn.textContent = hasPrereq ? '↺ Replace' : '+ Prereq';
+      addBtn.addEventListener('click', () => {
+        const preId = parseInt(addSel.value);
+        const preReqLvl = parseInt(addLvlInp.value) || 1;
+        ensureLinksSlots(fd, upgradeIdx, maxLevel);
+        fd.links[upgradeIdx][lvl-1] = [preId, preReqLvl];
+        rebuildPrereqLevels();
+      });
+
+      addRow.appendChild(addSel);
+      addRow.appendChild(addLvlInp);
+      addRow.appendChild(addBtn);
+      lvlRow.appendChild(addRow);
+
+      levelsWrap.appendChild(lvlRow);
+    }
+  }
+
+  rebuildPrereqLevels();
+  return section;
+}
+
+// ---- AI Order editor (Panel A sidebar) ----
+
+function renderAiOrder(fd){
+  const list = document.getElementById('ai-order-list');
+  list.innerHTML = '';
+
+  fd.ai_order.forEach(([upgradeId, level], pos) => {
+    const item = document.createElement('div');
+    item.className = 'ai-order-item';
+
+    const posEl = document.createElement('span');
+    posEl.className = 'ai-pos';
+    posEl.textContent = (pos+1) + '.';
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'ai-name';
+    nameEl.textContent = upgradeName(upgradeId);
+
+    const lvlEl = document.createElement('span');
+    lvlEl.className = 'ai-lvl';
+    lvlEl.textContent = 'L' + level;
+
+    const btns = document.createElement('div');
+    btns.className = 'ai-btns';
+
+    // Up
+    const upBtn = document.createElement('button');
+    upBtn.textContent = '▲';
+    upBtn.title = 'Move up';
+    upBtn.disabled = pos === 0;
+    upBtn.addEventListener('click', () => {
+      const tmp = fd.ai_order[pos-1];
+      fd.ai_order[pos-1] = fd.ai_order[pos];
+      fd.ai_order[pos] = tmp;
+      renderAiOrder(fd);
+      renderAiPanelQueue(); // keep Panel C in sync
+    });
+
+    // Down
+    const dnBtn = document.createElement('button');
+    dnBtn.textContent = '▼';
+    dnBtn.title = 'Move down';
+    dnBtn.disabled = pos === fd.ai_order.length - 1;
+    dnBtn.addEventListener('click', () => {
+      const tmp = fd.ai_order[pos+1];
+      fd.ai_order[pos+1] = fd.ai_order[pos];
+      fd.ai_order[pos] = tmp;
+      renderAiOrder(fd);
+      renderAiPanelQueue();
+    });
+
+    // Remove
+    const rmBtn = document.createElement('button');
+    rmBtn.textContent = '✕';
+    rmBtn.title = 'Remove';
+    rmBtn.style.color = '#c06060';
+    rmBtn.addEventListener('click', () => {
+      fd.ai_order.splice(pos, 1);
+      renderAiOrder(fd);
+      updateTechStats(fd);
+      renderAiPanelQueue();
+    });
+
+    btns.appendChild(upBtn);
+    btns.appendChild(dnBtn);
+    btns.appendChild(rmBtn);
+
+    item.appendChild(posEl);
+    item.appendChild(nameEl);
+    item.appendChild(lvlEl);
+    item.appendChild(btns);
+    list.appendChild(item);
+  });
+
+  document.getElementById('ai-order-count').textContent = fd.ai_order.length + ' steps';
+  updateTechStats(fd);
+}
+
+// ============================================================
+// AI Commander panel (Panel C)
+// ============================================================
+
+// Groups for AI constants
+const AI_GROUPS = [
+  {
+    id: 'command',
+    label: 'Command',
+    keys: [
+      'WFBE_C_AI_COMMANDER_ENABLED',
+      'WFBE_C_AI_COMMANDER_LOCK',
+      'WFBE_C_AI_COMMANDER_BUILD_GRACE',
+      'WFBE_C_AI_MAX',
+      'WFBE_C_AI_DELEGATION',
+      'WFBE_C_AI_DELEGATION_FPS_MIN',
+      'WFBE_C_AI_DELEGATION_GROUPS_MAX',
+      'WFBE_C_AI_TEAMS_ENABLED',
+      'WFBE_C_AI_TEAMS_JIP_PRESERVE',
+    ]
+  },
+  {
+    id: 'intervals',
+    label: 'Intervals',
+    keys: [
+      'WFBE_C_AI_COMMANDER_STRATEGY_INTERVAL',
+      'WFBE_C_AI_COMMANDER_BASE_INTERVAL',
+      'WFBE_C_AI_COMMANDER_TEAMS_INTERVAL',
+      'WFBE_C_AI_COMMANDER_MOVE_INTERVALS',
+      'WFBE_C_AI_PATROL_RANGE',
+      'WFBE_C_AI_TOWN_ATTACK_HOPS_WP',
+      'WFBE_C_AI_COMMANDER_SUPPLY_TRUCKS_MAX',
+    ]
+  },
+  {
+    id: 'spearhead',
+    label: 'Spearhead',
+    keys: [
+      'WFBE_C_AICOM_FRONTIER_RADIUS',
+      'WFBE_C_AICOM_DISTANCE_DIVISOR',
+      'WFBE_C_AICOM_HQ_PULL_DIVISOR',
+      'WFBE_C_AICOM_FAR_PENALTY',
+      'WFBE_C_AICOM_SPEARHEAD_TOWNS_MAX',
+    ]
+  },
+  {
+    id: 'economy_of_war',
+    label: 'Economy of War',
+    keys: [
+      'WFBE_C_AICOM_BOOTSTRAP_MAXTIME',
+      'WFBE_C_AICOM_BOOTSTRAP_FUNDS',
+      'WFBE_C_AICOM_BOOTSTRAP_SUPPLY',
+      'WFBE_C_AI_COMMANDER_FUNDS_PER_EXTRA_TEAM',
+      'WFBE_C_AI_COMMANDER_TEAMS_TARGET',
+      'WFBE_C_AI_COMMANDER_RELIEF_MAX',
+    ]
+  },
+  {
+    id: 'artillery',
+    label: 'Artillery',
+    keys: [
+      'WFBE_C_AI_COMMANDER_ARTILLERY',
+    ]
+  },
+  {
+    id: 'hardcoded',
+    label: 'Strategy Ratios (hardcoded)',
+    keys: [
+      '_displayOnly_HQ_HUNT_RATIO_ATTACK',
+      '_displayOnly_HQ_HUNT_RATIO_RETREAT',
+      '_displayOnly_HQ_HUNT_RATIO_FLANK',
+    ],
+    displayOnly: true
+  }
+];
+
+// Human-readable labels for AI constants
+const AI_KEY_LABELS = {
+  'WFBE_C_AI_COMMANDER_ENABLED':            'Commander Enabled',
+  'WFBE_C_AI_COMMANDER_LOCK':               'Lock (disable after N ticks)',
+  'WFBE_C_AI_COMMANDER_BUILD_GRACE':        'Build Grace Period (s)',
+  'WFBE_C_AI_MAX':                          'Max AI Units',
+  'WFBE_C_AI_DELEGATION':                   'Delegation Enabled',
+  'WFBE_C_AI_DELEGATION_FPS_MIN':           'Delegation Min FPS',
+  'WFBE_C_AI_DELEGATION_GROUPS_MAX':        'Delegation Max Groups',
+  'WFBE_C_AI_TEAMS_ENABLED':               'Teams Enabled',
+  'WFBE_C_AI_TEAMS_JIP_PRESERVE':          'Teams JIP Preserve',
+  'WFBE_C_AI_COMMANDER_STRATEGY_INTERVAL':  'Strategy Interval (s)',
+  'WFBE_C_AI_COMMANDER_BASE_INTERVAL':      'Base Interval (s)',
+  'WFBE_C_AI_COMMANDER_TEAMS_INTERVAL':     'Teams Interval (s)',
+  'WFBE_C_AI_COMMANDER_MOVE_INTERVALS':     'Move Interval (s)',
+  'WFBE_C_AI_PATROL_RANGE':                 'Patrol Range (m)',
+  'WFBE_C_AI_TOWN_ATTACK_HOPS_WP':          'Town Attack Waypoint Hops',
+  'WFBE_C_AI_COMMANDER_SUPPLY_TRUCKS_MAX':  'Max Supply Trucks',
+  'WFBE_C_AICOM_FRONTIER_RADIUS':           'Frontier Radius (m)',
+  'WFBE_C_AICOM_DISTANCE_DIVISOR':          'Distance Divisor',
+  'WFBE_C_AICOM_HQ_PULL_DIVISOR':           'HQ Pull Divisor',
+  'WFBE_C_AICOM_FAR_PENALTY':               'Far Penalty',
+  'WFBE_C_AICOM_SPEARHEAD_TOWNS_MAX':       'Spearhead Towns Max',
+  'WFBE_C_AICOM_BOOTSTRAP_MAXTIME':         'Bootstrap Max Time (s)',
+  'WFBE_C_AICOM_BOOTSTRAP_FUNDS':           'Bootstrap Funds',
+  'WFBE_C_AICOM_BOOTSTRAP_SUPPLY':          'Bootstrap Supply',
+  'WFBE_C_AI_COMMANDER_FUNDS_PER_EXTRA_TEAM':'Funds per Extra Team',
+  'WFBE_C_AI_COMMANDER_TEAMS_TARGET':       'Teams Target',
+  'WFBE_C_AI_COMMANDER_RELIEF_MAX':         'Relief Max',
+  'WFBE_C_AI_COMMANDER_ARTILLERY':          'Artillery Enable',
+  '_displayOnly_HQ_HUNT_RATIO_ATTACK':      'HQ Hunt Ratio — Attack',
+  '_displayOnly_HQ_HUNT_RATIO_RETREAT':     'HQ Hunt Ratio — Retreat',
+  '_displayOnly_HQ_HUNT_RATIO_FLANK':       'HQ Hunt Ratio — Flank',
+};
+
+// Keys that use a select in AI panel
+const AI_SELECT_FIELDS = {
+  'WFBE_C_AI_COMMANDER_ENABLED': [
+    {v:0, l:'0 — Disabled'}, {v:1, l:'1 — Enabled'},
+  ],
+  'WFBE_C_AI_DELEGATION': [
+    {v:0, l:'0 — Disabled'}, {v:1, l:'1 — Enabled'},
+  ],
+  'WFBE_C_AI_TEAMS_ENABLED': [
+    {v:0, l:'0 — Disabled'}, {v:1, l:'1 — Enabled'},
+  ],
+  'WFBE_C_AI_TEAMS_JIP_PRESERVE': [
+    {v:0, l:'0 — No'}, {v:1, l:'1 — Yes'},
+  ],
+  'WFBE_C_AI_COMMANDER_ARTILLERY': [
+    {v:0, l:'0 — Disabled'}, {v:1, l:'1 — Enabled'},
+  ],
+};
+
+// Keys shared with economy (reference, don't duplicate)
+const AI_SHARED_ECONOMY_KEYS = [
+  'WFBE_C_ARTILLERY_INTERVALS',
+  'WFBE_C_RESPAWN_RANGES',
+];
+
+// Keys that have float values
+function aiGetStep(key){
+  if(key.includes('DIVISOR') || key.includes('PENALTY') || key.includes('COEF') || key.startsWith('_displayOnly')) return 0.01;
+  return 1;
+}
+
+function buildAiPanel(aiData){
+  const main = document.getElementById('ai-panel-main');
+  main.innerHTML = '';
+
+  // Collect all keys defined in the data
+  const allDataKeys = new Set(Object.keys(aiData));
+
+  // Render each group
+  AI_GROUPS.forEach(group => {
+    // Only include keys that actually exist in the data for this group
+    const presentKeys = group.keys.filter(k => allDataKeys.has(k));
+    // Always show hardcoded group even if keys come from _displayOnly prefix
+    if(presentKeys.length === 0) return;
+
+    const card = document.createElement('div');
+    card.className = 'ai-group-card';
+    card.id = 'ai-group-' + group.id;
+
+    const head = document.createElement('div');
+    head.className = 'ai-group-head';
+    const h3 = document.createElement('h3');
+    h3.textContent = group.label;
+    const cnt = document.createElement('span');
+    cnt.className = 'ai-g-count';
+    cnt.textContent = presentKeys.length + ' field' + (presentKeys.length !== 1 ? 's' : '');
+    if(group.displayOnly){
+      const note = document.createElement('span');
+      note.style.cssText = 'font-size:9px;color:#D9763C;font-family:JetBrains Mono,monospace;margin-left:8px;font-style:italic';
+      note.textContent = 'hardcoded in AI_Commander.sqf — v2 extract';
+      head.appendChild(h3);
+      head.appendChild(note);
+      head.appendChild(cnt);
+    } else {
+      head.appendChild(h3);
+      head.appendChild(cnt);
+    }
+    card.appendChild(head);
+
+    const body = document.createElement('div');
+    body.className = 'ai-group-body';
+
+    // Use 2-col grid for spearhead + economy-of-war groups
+    const useGrid = (group.id === 'spearhead' || group.id === 'economy_of_war');
+    if(useGrid){
+      const grid = document.createElement('div');
+      grid.className = 'grid2';
+      presentKeys.forEach(k => renderAiField(grid, k, aiData[k], group.displayOnly));
+      body.appendChild(grid);
+    } else {
+      presentKeys.forEach(k => renderAiField(body, k, aiData[k], group.displayOnly));
+    }
+
+    card.appendChild(body);
+    main.appendChild(card);
+  });
+
+  // Shared arrays section — ARTILLERY_INTERVALS and RESPAWN_RANGES live in economy
+  const sharedCard = document.createElement('div');
+  sharedCard.className = 'ai-group-card';
+  sharedCard.id = 'ai-group-shared';
+  const sharedHead = document.createElement('div');
+  sharedHead.className = 'ai-group-head';
+  const sharedH3 = document.createElement('h3');
+  sharedH3.textContent = 'Shared Arrays';
+  const sharedCnt = document.createElement('span');
+  sharedCnt.className = 'ai-g-count';
+  sharedCnt.textContent = '2 fields · referenced from Economy';
+  sharedHead.appendChild(sharedH3);
+  sharedHead.appendChild(sharedCnt);
+  sharedCard.appendChild(sharedHead);
+
+  const sharedBody = document.createElement('div');
+  sharedBody.className = 'ai-group-body';
+  AI_SHARED_ECONOMY_KEYS.forEach(k => {
+    if(k in MODEL.economy){
+      renderSharedArrayField(sharedBody, k, MODEL.economy[k]);
+    }
+  });
+  sharedCard.appendChild(sharedBody);
+  main.appendChild(sharedCard);
+
+  // Also render any AI keys not covered by any group (catch-all)
+  const coveredKeys = new Set();
+  AI_GROUPS.forEach(g => g.keys.forEach(k => coveredKeys.add(k)));
+  const uncoveredKeys = Object.keys(aiData).filter(k => !coveredKeys.has(k));
+  if(uncoveredKeys.length > 0){
+    const otherCard = document.createElement('div');
+    otherCard.className = 'ai-group-card';
+    const otherHead = document.createElement('div');
+    otherHead.className = 'ai-group-head';
+    const otherH3 = document.createElement('h3');
+    otherH3.textContent = 'Other';
+    const otherCnt = document.createElement('span');
+    otherCnt.className = 'ai-g-count';
+    otherCnt.textContent = uncoveredKeys.length + ' fields';
+    otherHead.appendChild(otherH3);
+    otherHead.appendChild(otherCnt);
+    otherCard.appendChild(otherHead);
+    const otherBody = document.createElement('div');
+    otherBody.className = 'ai-group-body';
+    uncoveredKeys.forEach(k => renderAiField(otherBody, k, aiData[k], false));
+    otherCard.appendChild(otherBody);
+    main.appendChild(otherCard);
+  }
+}
+
+function renderAiField(container, key, val, readOnly){
+  const div = document.createElement('div');
+  div.className = 'field' + (readOnly ? ' field-readonly' : '');
+  div.dataset.aiKey = key;
+
+  const lbl = document.createElement('label');
+  const friendly = AI_KEY_LABELS[key] || key;
+  lbl.textContent = friendly;
+  const keySpan = document.createElement('span');
+  keySpan.className = 'key';
+  keySpan.textContent = key;
+  lbl.appendChild(keySpan);
+  if(readOnly){
+    const note = document.createElement('span');
+    note.className = 'readonly-note';
+    note.textContent = 'hardcoded in AI_Commander.sqf — read-only (v2 extract)';
+    lbl.appendChild(note);
+  }
+  div.appendChild(lbl);
+
+  if(AI_SELECT_FIELDS[key] && !readOnly){
+    const sel = document.createElement('select');
+    AI_SELECT_FIELDS[key].forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.v;
+      opt.textContent = o.l;
+      if(o.v == val) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', () => {
+      MODEL.ai[key] = parseInt(sel.value);
+    });
+    div.appendChild(sel);
+  } else if(Array.isArray(val)){
+    // Shouldn't happen for AI keys but handle gracefully
+    const row = document.createElement('div');
+    row.className = 'array-row';
+    val.forEach((v, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'array-cell';
+      const inp = document.createElement('input');
+      inp.type = 'number';
+      inp.value = v;
+      inp.step = 1;
+      inp.min = 0;
+      inp.classList.add('array-el');
+      if(readOnly) inp.readOnly = true;
+      else inp.addEventListener('change', () => {
+        const n = parseFloat(inp.value);
+        if(!isNaN(n)) MODEL.ai[key][i] = n;
+      });
+      const idx = document.createElement('div');
+      idx.className = 'array-idx';
+      idx.textContent = '[' + i + ']';
+      cell.appendChild(inp);
+      cell.appendChild(idx);
+      row.appendChild(cell);
+    });
+    div.appendChild(row);
+  } else {
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.value = val;
+    inp.step = aiGetStep(key);
+    inp.min = 0;
+    if(readOnly){
+      inp.readOnly = true;
+    } else {
+      inp.addEventListener('change', () => {
+        const n = parseFloat(inp.value);
+        if(!isNaN(n)) MODEL.ai[key] = n;
+      });
+    }
+    div.appendChild(inp);
+  }
+
+  container.appendChild(div);
+}
+
+// Render a shared-economy array field with a badge + scroll link
+function renderSharedArrayField(container, key, val){
+  const div = document.createElement('div');
+  div.className = 'field';
+  div.dataset.sharedKey = key;
+
+  const lbl = document.createElement('label');
+  // Friendly name from economy labels
+  const econLabels = {
+    'WFBE_C_ARTILLERY_INTERVALS': 'Artillery Intervals (s)',
+    'WFBE_C_RESPAWN_RANGES': 'Respawn Ranges (m)',
+  };
+  const labelSpan = document.createElement('span');
+  labelSpan.style.cssText = 'display:flex;align-items:center;gap:0;flex-wrap:wrap';
+  labelSpan.textContent = econLabels[key] || key;
+
+  const badge = document.createElement('span');
+  badge.className = 'shared-badge';
+  badge.textContent = 'shared with Economy';
+  badge.title = 'Click to jump to Economy panel';
+  badge.addEventListener('click', () => {
+    // Switch to Economy tab and scroll to field
+    document.querySelector('[data-tab="economy"]').click();
+    setTimeout(() => {
+      const econField = document.querySelector('[data-econ-key="' + key + '"]');
+      if(econField) econField.scrollIntoView({behavior:'smooth', block:'center'});
+    }, 80);
+  });
+  labelSpan.appendChild(badge);
+  lbl.appendChild(labelSpan);
+
+  const keySpan = document.createElement('span');
+  keySpan.className = 'key';
+  keySpan.textContent = key + '  →  edit in Economy panel';
+  lbl.appendChild(keySpan);
+  div.appendChild(lbl);
+
+  // Show as readonly array reflecting MODEL.economy[key]
+  const row = document.createElement('div');
+  row.className = 'array-row';
+  val.forEach((v, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'array-cell';
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.value = v;
+    inp.classList.add('array-el');
+    inp.readOnly = true;
+    inp.style.cssText = 'background:#0d1014;color:#9aa3ad;cursor:not-allowed';
+    const idx = document.createElement('div');
+    idx.className = 'array-idx';
+    idx.textContent = '[' + i + ']';
+    cell.appendChild(inp);
+    cell.appendChild(idx);
+    row.appendChild(cell);
+  });
+  div.appendChild(row);
+
+  container.appendChild(div);
+}
+
+// ---- Seed preview ----
+
+function updateSeedPreview(){
+  const mult = parseFloat(document.getElementById('seed-multiplier').value) || 1.5;
+  const sides = ['WEST','EAST','GUER'];
+  const labels = {WEST:'West (BLUFOR)', EAST:'East (OPFOR)', GUER:'Guerrilla'};
+  const container = document.getElementById('seed-rows');
+  container.innerHTML = '';
+
+  sides.forEach(side => {
+    const fundsKey = 'WFBE_C_ECONOMY_FUNDS_START_' + side;
+    const startFunds = MODEL.economy[fundsKey];
+    const row = document.createElement('div');
+    row.className = 'seed-row';
+    const sideEl = document.createElement('span');
+    sideEl.className = 'seed-side';
+    sideEl.textContent = labels[side];
+    const valEl = document.createElement('span');
+    valEl.className = 'seed-val';
+    if(startFunds !== undefined){
+      valEl.textContent = '₣' + Math.round(startFunds * mult).toLocaleString();
+    } else {
+      valEl.textContent = '—';
+      valEl.style.color = '#636d78';
+    }
+    row.appendChild(sideEl);
+    row.appendChild(valEl);
+    container.appendChild(row);
+  });
+}
+
+document.getElementById('seed-multiplier').addEventListener('input', updateSeedPreview);
+
+// ---- Affordability hint helper ----
+
+function affordabilityHint(upgradeId, level){
+  const fd = MODEL.upgrades.factions && MODEL.upgrades.factions[techFaction];
+  if(!fd) return null;
+  const costsForUpgrade = getUpgradeEntry(fd.costs, upgradeId);
+  if(!costsForUpgrade) return null;
+  const levelEntry = costsForUpgrade[level - 1];
+  if(!levelEntry) return null;
+  const funds = levelEntry[0];
+  if(funds === undefined || funds === null) return null;
+
+  // Sample income = round(100 * INCOME_COEF) — same default as Panel B preview
+  const sampleSV = 100;
+  const coef = MODEL.economy['WFBE_C_ECONOMY_INCOME_COEF'] || 1;
+  const incomePerTick = Math.round(sampleSV * coef);
+  if(incomePerTick <= 0) return { funds };
+
+  const ticks = Math.ceil(funds / incomePerTick);
+  return { funds, ticks };
+}
+
+// ---- AI Panel queue mirror (Panel C sidebar) ----
+
+function renderAiPanelQueue(){
+  const fd = MODEL.upgrades.factions && MODEL.upgrades.factions[techFaction];
+  const list = document.getElementById('aqm-list');
+  const countEl = document.getElementById('aqm-count');
+  if(!fd || !list) return;
+
+  list.innerHTML = '';
+  countEl.textContent = fd.ai_order.length + ' steps';
+
+  if(fd.ai_order.length === 0){
+    const empty = document.createElement('div');
+    empty.className = 'aqm-empty';
+    empty.textContent = 'No AI upgrade queue entries. Add below.';
+    list.appendChild(empty);
+    return;
+  }
+
+  fd.ai_order.forEach(([upgradeId, level], pos) => {
+    const item = document.createElement('div');
+    item.className = 'aqm-item';
+
+    const posEl = document.createElement('span');
+    posEl.className = 'aqm-pos';
+    posEl.textContent = (pos+1) + '.';
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'aqm-name';
+    nameEl.textContent = upgradeName(upgradeId);
+
+    const lvlEl = document.createElement('span');
+    lvlEl.className = 'aqm-lvl';
+    lvlEl.textContent = 'L' + level;
+
+    // Affordability hint
+    const hint = affordabilityHint(upgradeId, level);
+    const hintEl = document.createElement('span');
+    hintEl.className = 'aqm-hint';
+    if(hint){
+      if(hint.ticks !== undefined){
+        hintEl.textContent = '₣' + hint.funds + ' (~' + hint.ticks + ' ticks)';
+      } else {
+        hintEl.textContent = '₣' + hint.funds;
+      }
+    }
+
+    const btns = document.createElement('div');
+    btns.className = 'aqm-btns';
+
+    const upBtn = document.createElement('button');
+    upBtn.textContent = '▲';
+    upBtn.title = 'Move up';
+    upBtn.disabled = pos === 0;
+    upBtn.addEventListener('click', () => {
+      const tmp = fd.ai_order[pos-1];
+      fd.ai_order[pos-1] = fd.ai_order[pos];
+      fd.ai_order[pos] = tmp;
+      renderAiPanelQueue();
+      renderAiOrder(fd); // keep Panel A in sync
+    });
+
+    const dnBtn = document.createElement('button');
+    dnBtn.textContent = '▼';
+    dnBtn.title = 'Move down';
+    dnBtn.disabled = pos === fd.ai_order.length - 1;
+    dnBtn.addEventListener('click', () => {
+      const tmp = fd.ai_order[pos+1];
+      fd.ai_order[pos+1] = fd.ai_order[pos];
+      fd.ai_order[pos] = tmp;
+      renderAiPanelQueue();
+      renderAiOrder(fd);
+    });
+
+    const rmBtn = document.createElement('button');
+    rmBtn.textContent = '✕';
+    rmBtn.title = 'Remove';
+    rmBtn.style.color = '#c06060';
+    rmBtn.addEventListener('click', () => {
+      fd.ai_order.splice(pos, 1);
+      renderAiPanelQueue();
+      renderAiOrder(fd);
+      updateTechStats(fd);
+    });
+
+    btns.appendChild(upBtn);
+    btns.appendChild(dnBtn);
+    btns.appendChild(rmBtn);
+
+    item.appendChild(posEl);
+    item.appendChild(nameEl);
+    item.appendChild(lvlEl);
+    item.appendChild(hintEl);
+    item.appendChild(btns);
+    list.appendChild(item);
+  });
+}
+
+// ---- Build full AI panel ----
+
+function buildAiPanelUI(){
+  buildAiPanel(MODEL.ai);
+  updateSeedPreview();
+
+  // Populate AI panel faction selector (synced with techFaction)
+  const factionNames = Object.keys(MODEL.upgrades.factions || {});
+  const aqmSel = document.getElementById('ai-panel-faction-sel');
+  aqmSel.innerHTML = '';
+  factionNames.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f;
+    opt.textContent = f;
+    if(f === techFaction) opt.selected = true;
+    aqmSel.appendChild(opt);
+  });
+  aqmSel.addEventListener('change', () => {
+    techFaction = aqmSel.value;
+    // Also sync Panel A faction selector
+    const techSel = document.getElementById('tech-faction-sel');
+    if(techSel) techSel.value = techFaction;
+    renderTechFaction();
+    renderAiPanelQueue();
+  });
+
+  // Populate add-upgrade selector in Panel C
+  const aqmAddSel = document.getElementById('aqm-add-sel');
+  aqmAddSel.innerHTML = '';
+  ALL_UPGRADES.forEach(idx => {
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = idx + ' — ' + upgradeName(idx);
+    aqmAddSel.appendChild(opt);
+  });
+
+  document.getElementById('aqm-add-btn').addEventListener('click', () => {
+    const fd = MODEL.upgrades.factions[techFaction];
+    if(!fd) return;
+    const upgradeId = parseInt(document.getElementById('aqm-add-sel').value);
+    const level = parseInt(document.getElementById('aqm-add-level').value) || 1;
+    fd.ai_order.push([upgradeId, level]);
+    renderAiPanelQueue();
+    renderAiOrder(fd);
+    updateTechStats(fd);
+  });
+
+  renderAiPanelQueue();
+}
+
+// Hook: when Panel A's faction changes, also update the AI Panel faction selector + queue
+const _origRenderTechFaction = renderTechFaction;
+// We patch renderAiOrder calls in Panel A to also refresh Panel C via the renderAiPanelQueue calls already added above.
+
+// Also patch the Tech-Tree faction selector change to sync ai-panel-faction-sel
+document.getElementById('tech-faction-sel').addEventListener('change', () => {
+  const aqmSel = document.getElementById('ai-panel-faction-sel');
+  if(aqmSel) aqmSel.value = techFaction;
+  renderAiPanelQueue();
+});
+
+// Patch economy FUNDS_START inputs to also update seed preview
+// We do this by observing changes on any input[data-econ-key starts with FUNDS_START]
+// Using a MutationObserver + delegated event on econ-main
+document.getElementById('econ-main').addEventListener('change', (e) => {
+  const field = e.target.closest('[data-econ-key]');
+  if(field){
+    const key = field.dataset.econKey;
+    if(key && key.startsWith('WFBE_C_ECONOMY_FUNDS_START_')){
+      updateSeedPreview();
+    }
+  }
+});
+
+// ============================================================
+// Export — Task 5
+// ============================================================
+
+// Upgrade ID index → name map (reverse of MODEL.upgrades.ids)
+function getUpgradeIdToName(){
+  const ids = (MODEL.upgrades && MODEL.upgrades.ids) || {};
+  const map = {};
+  Object.entries(ids).forEach(([name, idx]) => { map[idx] = name; });
+  return map;
+}
+
+// ---- SQF value serialisation helpers ----
+
+function sqfBool(v){ return v ? 'true' : 'false'; }
+
+function sqfNum(v){
+  if(Number.isInteger(v)) return String(v);
+  // Preserve up to 4 significant decimal places, strip trailing zeros
+  return parseFloat(v.toPrecision(8)).toString();
+}
+
+function sqfVal(v){
+  if(v === null || v === undefined) return 'nil';
+  if(typeof v === 'boolean') return sqfBool(v);
+  if(typeof v === 'number') return sqfNum(v);
+  if(Array.isArray(v)) return sqfArr(v);
+  return String(v);
+}
+
+function sqfArr(arr){
+  return '[' + arr.map(sqfVal).join(',') + ']';
+}
+
+// Format a single [funds,supply] cost pair
+function sqfCostPair(pair){ return '[' + pair[0] + ',' + pair[1] + ']'; }
+
+// Format upgrade links entry. The structure is:
+//   [] — no prereq
+//   [id,lvl] — single prereq pair (2 numbers)
+//   [[id,lvl],[id,lvl],...] — multiple prereq pairs
+// We must preserve the exact shape.
+function sqfLinks(entry){
+  if(!Array.isArray(entry) || entry.length === 0) return '[]';
+  // Single pair: [num, num]
+  if(entry.length === 2 && typeof entry[0] === 'number') {
+    const idToName = getUpgradeIdToName();
+    return '[WFBE_UP_' + (idToName[entry[0]] || entry[0]) + ',' + entry[1] + ']';
+  }
+  // List of pairs
+  const idToName = getUpgradeIdToName();
+  const parts = entry.map(sub => {
+    if(!Array.isArray(sub) || sub.length === 0) return '[]';
+    if(sub.length === 2 && typeof sub[0] === 'number'){
+      return '[WFBE_UP_' + (idToName[sub[0]] || sub[0]) + ',' + sub[1] + ']';
+    }
+    // nested list of pairs (e.g. Paratroopers per-level multi-prereq)
+    return '[' + sub.map(p => {
+      if(Array.isArray(p) && p.length === 2) return '[WFBE_UP_' + (idToName[p[0]] || p[0]) + ',' + p[1] + ']';
+      return sqfVal(p);
+    }).join(',') + ']';
+  });
+  return '[' + parts.join(',') + ']';
+}
+
+// ---- AI_ORDER entry serialisation ----
+function sqfAiOrderEntry(entry){
+  const idToName = getUpgradeIdToName();
+  const [id, lvl] = entry;
+  return '[WFBE_UP_' + (idToName[id] || id) + ',' + lvl + ']';
+}
+
+// ---- Regenerate the 6 setVariable blocks for a faction (change-list mode) ----
+function regenerateUpgradesBlock(faction, fd, changedKeys){
+  const lines = [];
+  const side = '_side';
+
+  // ENABLED — only emit if there are non-null true/false changes we can safely write
+  // null entries (expressions) are skipped entirely in change-list mode
+  if(!changedKeys || changedKeys.has('enabled')){
+    const enabledParts = fd.enabled.map((v, i) => {
+      if(v === null) return null; // skip expression entries in snippet
+      return sqfBool(v) + ' //--- ' + (MODEL.upgrades.labels[i] || ('Upgrade '+i));
+    }).filter(v => v !== null);
+    if(enabledParts.length){
+      lines.push('// ENABLED — omits runtime-expression entries (shown as null)');
+      lines.push('missionNamespace setVariable [Format["WFBE_C_UPGRADES_%1_ENABLED", _side], [');
+      lines.push('\t' + enabledParts.join(',\n\t'));
+      lines.push(']];');
+      lines.push('');
+    }
+  }
+
+  // COSTS
+  if(!changedKeys || changedKeys.has('costs')){
+    lines.push('missionNamespace setVariable [Format["WFBE_C_UPGRADES_%1_COSTS", _side], [');
+    const costParts = fd.costs.map((perUpgrade, i) => {
+      const label = MODEL.upgrades.labels[i] || ('Upgrade '+i);
+      if(!Array.isArray(perUpgrade)) return '\t[] //--- ' + label;
+      const pairs = perUpgrade.map(sqfCostPair).join(',');
+      return '\t[' + pairs + '] //--- ' + label;
+    });
+    lines.push(costParts.join(',\n'));
+    lines.push(']];');
+    lines.push('');
+  }
+
+  // LEVELS
+  if(!changedKeys || changedKeys.has('levels')){
+    lines.push('missionNamespace setVariable [Format["WFBE_C_UPGRADES_%1_LEVELS", _side], [');
+    const lvlParts = fd.levels.map((v, i) => {
+      return '\t' + v + ' //--- ' + (MODEL.upgrades.labels[i] || ('Upgrade '+i));
+    });
+    lines.push(lvlParts.join(',\n'));
+    lines.push(']];');
+    lines.push('');
+  }
+
+  // LINKS
+  if(!changedKeys || changedKeys.has('links')){
+    lines.push('missionNamespace setVariable [Format["WFBE_C_UPGRADES_%1_LINKS", _side], [');
+    const linkParts = fd.links.map((entry, i) => {
+      const label = MODEL.upgrades.labels[i] || ('Upgrade '+i);
+      return '\t' + sqfLinks(entry) + ' //--- ' + label;
+    });
+    lines.push(linkParts.join(',\n'));
+    lines.push(']];');
+    lines.push('');
+  }
+
+  // TIMES
+  if(!changedKeys || changedKeys.has('times')){
+    lines.push('missionNamespace setVariable [Format["WFBE_C_UPGRADES_%1_TIMES", _side], [');
+    const timeParts = fd.times.map((perUpgrade, i) => {
+      const label = MODEL.upgrades.labels[i] || ('Upgrade '+i);
+      if(!Array.isArray(perUpgrade)) return '\t[] //--- ' + label;
+      return '\t[' + perUpgrade.join(',') + '] //--- ' + label;
+    });
+    lines.push(timeParts.join(',\n'));
+    lines.push(']];');
+    lines.push('');
+  }
+
+  // AI_ORDER
+  if(!changedKeys || changedKeys.has('ai_order')){
+    lines.push('missionNamespace setVariable [Format["WFBE_C_UPGRADES_%1_AI_ORDER", _side], [');
+    const aoParts = fd.ai_order.map(entry => '\t' + sqfAiOrderEntry(entry));
+    lines.push(aoParts.join(',\n'));
+    lines.push(']];');
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+// ---- Constants change-list mode ----
+// AI constants NOT present in the live file (proposed refactor constants)
+const PROPOSED_AI_KEYS = new Set([
+  'WFBE_C_AI_COMMANDER_STRATEGY_INTERVAL',
+  'WFBE_C_AI_COMMANDER_BASE_INTERVAL',
+  'WFBE_C_AI_COMMANDER_TEAMS_INTERVAL',
+  'WFBE_C_AICOM_FRONTIER_RADIUS',
+  'WFBE_C_AICOM_DISTANCE_DIVISOR',
+  'WFBE_C_AICOM_HQ_PULL_DIVISOR',
+  'WFBE_C_AICOM_FAR_PENALTY',
+  'WFBE_C_AICOM_SPEARHEAD_TOWNS_MAX',
+  'WFBE_C_AICOM_BOOTSTRAP_MAXTIME',
+  'WFBE_C_AICOM_BOOTSTRAP_FUNDS',
+  'WFBE_C_AICOM_BOOTSTRAP_SUPPLY',
+  'WFBE_C_AI_COMMANDER_FUNDS_PER_EXTRA_TEAM',
+  'WFBE_C_AI_COMMANDER_TEAMS_TARGET',
+  'WFBE_C_AI_COMMANDER_RELIEF_MAX',
+  'WFBE_C_AI_COMMANDER_BUILD_GRACE',
+  'WFBE_C_AI_TEAMS_ENABLED',
+  'WFBE_C_AI_TEAMS_JIP_PRESERVE',
+]);
+
+// The hardcoded display-only keys are never exported
+const DISPLAY_ONLY_KEYS = new Set([
+  '_displayOnly_HQ_HUNT_RATIO_ATTACK',
+  '_displayOnly_HQ_HUNT_RATIO_RETREAT',
+  '_displayOnly_HQ_HUNT_RATIO_FLANK',
+]);
+
+function generateConstantsChangeList(econChanges, aiChanges, proposedAiChanges){
+  const lines = [];
+  lines.push('// ============================================================');
+  lines.push('// Init_CommonConstants.sqf — change-list (paste-ready snippets)');
+  lines.push('// Only values you edited from the loaded seed are listed.');
+  lines.push('// ============================================================');
+  lines.push('');
+
+  // Economy changes
+  const econKeys = Object.keys(econChanges);
+  if(econKeys.length){
+    lines.push('// --- Economy constants (paste into Init_CommonConstants.sqf) ---');
+    econKeys.forEach(k => {
+      const v = econChanges[k];
+      lines.push(k + ' = ' + sqfVal(v) + ';');
+    });
+    lines.push('');
+  }
+
+  // AI changes (live file constants)
+  const aiKeys = Object.keys(aiChanges).filter(k => !DISPLAY_ONLY_KEYS.has(k));
+  if(aiKeys.length){
+    lines.push('// --- AI Commander constants (live in current file) ---');
+    aiKeys.forEach(k => {
+      const v = aiChanges[k];
+      lines.push(k + ' = ' + sqfVal(v) + ';');
+    });
+    lines.push('');
+  }
+
+  // Proposed / not-yet-in-file constants
+  const propKeys = Object.keys(proposedAiChanges).filter(k => !DISPLAY_ONLY_KEYS.has(k));
+  if(propKeys.length){
+    lines.push('// --- Proposed (AI refactor branch) — NOT in current file ---');
+    lines.push('// Add these to Init_CommonConstants.sqf when integrating the refactor.');
+    propKeys.forEach(k => {
+      const v = proposedAiChanges[k];
+      lines.push(k + ' = ' + sqfVal(v) + ';');
+    });
+    lines.push('');
+  }
+
+  if(!econKeys.length && !aiKeys.length && !propKeys.length){
+    lines.push('// No changes detected vs. seed data.');
+  }
+
+  return lines.join('\n');
+}
+
+// ============================================================
+// Paste-and-patch engine
+// ============================================================
+
+// Parse a SQF source text to find the char spans of the
+// setVariable value arrays (for Upgrades) or bare assignments (for constants).
+// Returns an array of {key, start, end, rawText} where start..end is
+// the slice of `text` that represents the full value (including array brackets).
+
+// ---- Strip SQF comments for span-finding (returns cleaned text,
+//      BUT we keep offsets matching the original via a character map) ----
+// Actually: we work on original text offsets. We just need to find the
+// VALUE spans robustly. Comments within values are harmless for our replace.
+
+// Find matching bracket starting at pos (pos must be '[')
+function findMatchingBracket(text, pos){
+  let depth = 0;
+  for(let i = pos; i < text.length; i++){
+    if(text[i] === '[') depth++;
+    else if(text[i] === ']'){
+      depth--;
+      if(depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+// ---- Parse Upgrades_<F>.sqf into a span map ----
+// Returns { ENABLED:{start,end}, COSTS:{start,end}, LEVELS:{start,end},
+//           LINKS:{start,end}, TIMES:{start,end}, AI_ORDER:{start,end} }
+// start = position of opening '[', end = position of closing ']' (inclusive)
+function parseUpgradesSpans(text){
+  const kinds = ['ENABLED','COSTS','LEVELS','LINKS','TIMES','AI_ORDER'];
+  const spans = {};
+  for(const kind of kinds){
+    const re = new RegExp(
+      'missionNamespace\\s+setVariable\\s*\\[\\s*' +
+      'Format\\s*\\[\\s*"WFBE_C_UPGRADES_%1_' + kind + '"[^\\]]*\\]\\s*,\\s*(\\[)',
+      'i'
+    );
+    const m = re.exec(text);
+    if(!m) continue;
+    const start = m.index + m[0].length - 1; // position of the '[' we captured
+    const end = findMatchingBracket(text, start);
+    if(end === -1) continue;
+    spans[kind] = { start, end };
+  }
+  return spans;
+}
+
+// ---- Parse Init_CommonConstants.sqf into a span map ----
+// Scans the raw text using absolute char positions — never splits on newlines
+// so \r\n files are handled correctly.
+// Returns { KEY: {start, end, rawVal} }
+// start/end = absolute char positions of the VALUE (exclusive of semicolon)
+function parseConstantSpans(text){
+  const spans = {};
+
+  // Helper: scan from pos to find the end of a SQF value (stops at ';' at depth 0)
+  function scanValueEnd(start){
+    let d = 0, i = start;
+    while(i < text.length){
+      const c = text[i];
+      if(c === '[') d++;
+      else if(c === ']') d--;
+      else if(c === ';' && d === 0) return i;
+      // Stop at newline only if not inside array (handles single-line assignments)
+      else if((c === '\r' || c === '\n') && d === 0) return i;
+      i++;
+    }
+    return i;
+  }
+
+  // Helper: extract brace body {…} starting at bracePos
+  function extractBraceBody(start){
+    // start points at '{'
+    let d = 0, i = start;
+    while(i < text.length){
+      if(text[i] === '{') d++;
+      else if(text[i] === '}'){
+        d--;
+        if(d === 0) return { bodyStart: start+1, bodyEnd: i };
+      }
+      i++;
+    }
+    return { bodyStart: start+1, bodyEnd: i };
+  }
+
+  // --- Pass 1: bare assignments  VARNAME = VALUE;
+  // Use regex on full text (absolute indices preserved)
+  const bareRe = /\b([A-Z][A-Z0-9_]+)\s*=\s*/g;
+  let m;
+  while((m = bareRe.exec(text)) !== null){
+    const name = m[1];
+    if(!shouldTrackConstant(name)) continue;
+    if(spans[name]) continue;
+    const vs = m.index + m[0].length;
+    const rawChunk = text.slice(vs, Math.min(vs+3, text.length)).trimStart();
+    if(rawChunk.startsWith('if') || rawChunk.startsWith('IF')) continue;
+    const ve = scanValueEnd(vs);
+    const rawVal = text.slice(vs, ve).trim();
+    if(rawVal.startsWith('if') || rawVal.startsWith('IF')) continue;
+    spans[name] = { start: vs, end: ve, rawVal };
+  }
+
+  // --- Pass 2: isNil guarded form: if (isNil "VARNAME") then {VARNAME = VALUE}
+  // Regex across the full text — handles \r\n correctly since we use \s+
+  const isNilRe = /if\s*\(\s*isNil\s+"([A-Z][A-Z0-9_]*)"\s*\)\s+then\s*(\{)/g;
+  let nm;
+  while((nm = isNilRe.exec(text)) !== null){
+    const name = nm[1];
+    if(!shouldTrackConstant(name)) continue;
+    const {bodyStart, bodyEnd} = extractBraceBody(nm.index + nm[0].length - 1);
+    const bodyText = text.slice(bodyStart, bodyEnd);
+    const iRe = new RegExp('\\b' + name + '\\s*=\\s*', 'i');
+    const im = iRe.exec(bodyText);
+    if(!im) continue;
+    const vs = bodyStart + im.index + im[0].length;
+    const rawChunk = text.slice(vs, Math.min(vs+3, text.length)).trimStart();
+    if(rawChunk.startsWith('if') || rawChunk.startsWith('IF')) continue;
+    // Only update if not already found (bare assignment takes precedence for non-debug vars)
+    if(!spans[name]){
+      const ve = scanValueEnd(vs);
+      const rawVal = text.slice(vs, ve).trim();
+      if(!rawVal.startsWith('if') && !rawVal.startsWith('IF')){
+        spans[name] = { start: vs, end: ve, rawVal };
+      }
+    }
+  }
+
+  // --- Pass 3: WF_Debug else-branch  if WF_Debug then {...} else { VARNAME = VALUE; }
+  // This handles WFBE_C_ARTILLERY_INTERVALS etc.
+  const debugRe = /if\s+WF_Debug\s+then\s*(\{)/g;
+  let dm;
+  while((dm = debugRe.exec(text)) !== null){
+    const thenBrace = dm.index + dm[0].length - 1;
+    const {bodyEnd: thenEnd} = extractBraceBody(thenBrace);
+    // Find 'else' after the then block
+    const afterThen = thenEnd + 1;
+    const elseRe = /\s*else\s*(\{)/g;
+    elseRe.lastIndex = afterThen;
+    const em = elseRe.exec(text);
+    if(!em || em.index > afterThen + 20) continue;
+    const elseBrace = em.index + em[0].length - 1;
+    const {bodyStart: elseBodyStart, bodyEnd: elseBodyEnd} = extractBraceBody(elseBrace);
+    const elseBody = text.slice(elseBodyStart, elseBodyEnd);
+
+    const eAssignRe = /\b([A-Z][A-Z0-9_]+)\s*=\s*/g;
+    let ea;
+    while((ea = eAssignRe.exec(elseBody)) !== null){
+      const name = ea[1];
+      if(!shouldTrackConstant(name)) continue;
+      if(spans[name]) continue;
+      const vs = elseBodyStart + ea.index + ea[0].length;
+      const rawChunk = text.slice(vs, Math.min(vs+3, text.length)).trimStart();
+      if(rawChunk.startsWith('if') || rawChunk.startsWith('IF')) continue;
+      const ve = scanValueEnd(vs);
+      const rawVal = text.slice(vs, ve).trim();
+      if(rawVal.startsWith('if') || rawVal.startsWith('IF')) continue;
+      spans[name] = { start: vs, end: ve, rawVal };
+    }
+  }
+
+  return spans;
+}
+
+function shouldTrackConstant(name){
+  // Same set as extract_strategy._should_capture, minus display-only
+  if(DISPLAY_ONLY_KEYS.has(name)) return false;
+  const prefixes = [
+    'WFBE_C_ECONOMY_',
+    'WFBE_C_AI_',
+    'WFBE_C_AICOM_',
+    'WFBE_C_ARTILLERY_INTERVALS',
+    'WFBE_C_RESPAWN_RANGES',
+    'WFBE_C_TOWNS_SUPPLY_LEVELS_',
+    'WFBE_C_UNITS_SUPPORT_',
+    'WFBE_C_UNITS_CREW_COST',
+    'WFBE_C_PLAYERS_GEAR_SELL_COEF',
+    'WFBE_C_BASE_HQ_REPAIR_',
+    'WFBE_C_STRUCTURES_MAX',
+    'TEAM_SKILL_TICKS_',
+    'PLAYER_NUMBER_DIFFERENCE_MODIFIER',
+    'SUPPLY_COMPENSATION_AMOUNT_',
+    'TEAM_WEST_TICKS_NO_PLAYERS',
+    'TEAM_EAST_TICKS_NO_PLAYERS',
+    'SUPPLY_INCOME_TICK_MODIFIER_MULTIPLIER',
+    'WFBE_SUPPLY_MISSION_SCORE_COEF',
+    'WFBE_UPGRADE_SCORE_COEF',
+    'WFBE_C_MAX_ECONOMY_SUPPLY_LIMIT',
+  ];
+  return prefixes.some(p => name.startsWith(p));
+}
+
+// Parse a raw SQF value text back to JS (for comparison)
+function parseSqfValueText(txt){
+  txt = txt.trim();
+  if(txt === 'true') return true;
+  if(txt === 'false') return false;
+  if(txt === 'nil') return null;
+  if(txt.startsWith('[')){
+    // Use a simple eval-like approach: replace WFBE_UP_* with placeholder
+    // then JSON parse
+    try{
+      const json = txt
+        .replace(/WFBE_UP_[A-Z0-9_]+/g, m => {
+          const ids = (MODEL.upgrades && MODEL.upgrades.ids) || {};
+          const name = m.replace('WFBE_UP_','');
+          return (name in ids) ? ids[name] : 0;
+        })
+        .replace(/\btrue\b/gi, 'true')
+        .replace(/\bfalse\b/gi, 'false');
+      return JSON.parse(json);
+    }catch(e){ return txt; }
+  }
+  const n = Number(txt);
+  if(!isNaN(n)) return n;
+  return txt;
+}
+
+// Deep equality check for JS values (numbers, arrays, booleans)
+function deepEq(a, b){
+  if(a === b) return true;
+  if(Array.isArray(a) && Array.isArray(b)){
+    if(a.length !== b.length) return false;
+    return a.every((v, i) => deepEq(v, b[i]));
+  }
+  if(typeof a === 'number' && typeof b === 'number') return Math.abs(a-b) < 1e-9;
+  return false;
+}
+
+// ---- Patch an Upgrades file ----
+// Returns the patched text (byte-identical if no changes).
+function patchUpgradesFile(origText, fd, origFd){
+  // Parse spans from original text
+  const spans = parseUpgradesSpans(origText);
+
+  // Build list of replacements: {start, end, newText}
+  // Apply in REVERSE order so indices stay valid.
+  const replacements = [];
+
+  const kinds = ['ENABLED','COSTS','LEVELS','LINKS','TIMES','AI_ORDER'];
+  for(const kind of kinds){
+    if(!(kind in spans)) continue;
+    const {start, end} = spans[kind];
+    const lowerKind = kind === 'AI_ORDER' ? 'ai_order' : kind.toLowerCase();
+    const modelVal = fd[lowerKind];
+    const origVal = origFd[lowerKind];
+
+    if(kind === 'ENABLED'){
+      // Element-level in-place patching: only replace the true/false tokens that changed.
+      // null entries (runtime expressions) are never touched.
+      const elemReps = buildEnabledElementReplacements(fd.enabled, origText, spans['ENABLED']);
+      for(const r of elemReps) replacements.push(r);
+      continue;
+    }
+
+    // Check if this kind has any changes
+    if(deepEq(modelVal, origVal)) continue;
+
+    // Generate new value text (replaces the whole array span)
+    let newText;
+    if(kind === 'COSTS'){
+      newText = regenerateCostsArray(fd.costs);
+    } else if(kind === 'LEVELS'){
+      newText = regenerateLevelsArray(fd.levels);
+    } else if(kind === 'LINKS'){
+      newText = regenerateLinksArray(fd.links);
+    } else if(kind === 'TIMES'){
+      newText = regenerateTimesArray(fd.times);
+    } else if(kind === 'AI_ORDER'){
+      newText = regenerateAiOrderArray(fd.ai_order);
+    }
+
+    if(newText !== undefined){
+      // Replace span.start..span.end+1 (include the closing ']')
+      replacements.push({start, end: end+1, newText});
+    }
+  }
+
+  // Apply replacements in reverse order (highest start first) so indices stay valid
+  replacements.sort((a,b) => b.start - a.start);
+  let result = origText;
+  for(const {start, end, newText} of replacements){
+    result = result.slice(0, start) + newText + result.slice(end);
+  }
+  return result;
+}
+
+// Patch ENABLED array in-place using absolute positions.
+// Returns { start, end, newText } replacements (for each changed element),
+// or null if nothing changed or can't parse.
+// Called by patchUpgradesFile differently — see below.
+function buildEnabledElementReplacements(enabledModel, origText, span){
+  // The ENABLED span covers [ ... ] (start=opening '[', end=closing ']')
+  // We scan inside to find each element's value token position, then
+  // only replace the true/false token for elements that changed.
+  const replacements = [];
+  const inner = origText.slice(span.start + 1, span.end); // content between [ and ]
+  const base = span.start + 1; // offset to add to inner positions
+
+  // Walk inner text, tracking top-level commas to split elements
+  let depth = 0, elemStart = 0, elemIdx = 0;
+  function processElem(rawElem, elemAbsStart){
+    const modelVal = enabledModel[elemIdx];
+    elemIdx++;
+    if(modelVal === null || modelVal === undefined) return; // leave expression as-is
+    // Strip trailing comment to find the value token
+    const commentIdx = rawElem.indexOf('//');
+    const valuePart = commentIdx !== -1 ? rawElem.slice(0, commentIdx) : rawElem;
+    const trimmed = valuePart.trim().toLowerCase();
+    const expected = modelVal ? 'true' : 'false';
+    if(trimmed === expected) return; // no change needed
+    // Find the position of true/false in rawElem
+    const tokenRe = /\b(true|false)\b/i;
+    const tm = tokenRe.exec(valuePart);
+    if(!tm) return; // can't find token, skip
+    const tokenStart = elemAbsStart + tm.index;
+    const tokenEnd   = tokenStart + tm[0].length;
+    replacements.push({ start: tokenStart, end: tokenEnd, newText: expected });
+  }
+
+  for(let i = 0; i <= inner.length; i++){
+    const c = i < inner.length ? inner[i] : ','; // sentinel comma at end
+    if(c === '[' || c === '(' || c === '{') depth++;
+    else if(c === ']' || c === ')' || c === '}') depth--;
+    else if(c === ',' && depth === 0){
+      const rawElem = inner.slice(elemStart, i);
+      processElem(rawElem, base + elemStart);
+      elemStart = i + 1;
+    }
+  }
+
+  return replacements; // empty = no changes (no-op → caller returns origText unchanged)
+}
+
+// Split a string on top-level commas (not inside brackets)
+function splitTopLevel(text){
+  const items = [];
+  let depth = 0, buf = [], i = 0;
+  while(i < text.length){
+    const c = text[i];
+    if(c === '[' || c === '(' || c === '{') { depth++; buf.push(c); }
+    else if(c === ']' || c === ')' || c === '}') { depth--; buf.push(c); }
+    else if(c === ',' && depth === 0){
+      items.push(buf.join(''));
+      buf = [];
+    } else {
+      buf.push(c);
+    }
+    i++;
+  }
+  if(buf.length) items.push(buf.join(''));
+  return items;
+}
+
+// Regenerate arrays (minimal — use when whole array changed)
+function regenerateCostsArray(costs){
+  const parts = costs.map((perUpgrade, i) => {
+    if(!Array.isArray(perUpgrade)) return '\t[]';
+    return '\t[' + perUpgrade.map(sqfCostPair).join(',') + ']';
+  });
+  return '[\n' + parts.join(',\n') + '\n]';
+}
+
+function regenerateLevelsArray(levels){
+  return '[' + levels.join(',') + ']';
+}
+
+function regenerateTimesArray(times){
+  const parts = times.map(t => {
+    if(!Array.isArray(t)) return '[]';
+    return '[' + t.join(',') + ']';
+  });
+  return '[\n\t' + parts.join(',\n\t') + '\n]';
+}
+
+function regenerateLinksArray(links){
+  const parts = links.map(entry => sqfLinks(entry));
+  return '[\n\t' + parts.join(',\n\t') + '\n]';
+}
+
+function regenerateAiOrderArray(ai_order){
+  const parts = ai_order.map(sqfAiOrderEntry);
+  return '[\n\t' + parts.join(',\n\t') + '\n]';
+}
+
+// ---- Patch a constants file ----
+// Replaces ONLY the value spans of constants that exist in the pasted file
+// AND have changed vs. the seed.
+// Returns {text: patchedText, proposed: {key:newVal}, changed: [{key, oldRaw, newVal}]}
+function patchConstantsFile(origText, econModel, aiModel, seedEcon, seedAi){
+  const spans = parseConstantSpans(origText);
+  const replacements = [];
+  const changed = [];
+  const proposedChanges = {}; // keys not in file
+
+  // Economy constants
+  Object.entries(econModel).forEach(([key, val]) => {
+    if(DISPLAY_ONLY_KEYS.has(key)) return;
+    const seedVal = seedEcon[key];
+    if(deepEq(val, seedVal)) return; // not changed
+
+    if(key in spans){
+      const {start, end, rawVal} = spans[key];
+      const newText = sqfVal(val);
+      replacements.push({start, end, newText, key});
+      changed.push({key, oldRaw: rawVal, newVal: val});
+    }
+    // Economy constants not in file are unusual — just note them
+  });
+
+  // AI constants
+  Object.entries(aiModel).forEach(([key, val]) => {
+    if(DISPLAY_ONLY_KEYS.has(key)) return;
+    const seedVal = seedAi[key];
+    if(deepEq(val, seedVal)) return; // not changed
+
+    if(PROPOSED_AI_KEYS.has(key)){
+      // Not in the live file — segregate
+      proposedChanges[key] = val;
+    } else if(key in spans){
+      const {start, end, rawVal} = spans[key];
+      const newText = sqfVal(val);
+      replacements.push({start, end, newText, key});
+      changed.push({key, oldRaw: rawVal, newVal: val});
+    }
+    // AI key changed but not found in spans + not proposed = unusual, ignore
+  });
+
+  // Apply replacements in reverse order
+  replacements.sort((a,b) => b.start - a.start);
+  let result = origText;
+  for(const {start, end, newText} of replacements){
+    result = result.slice(0, start) + newText + result.slice(end);
+  }
+
+  return {text: result, proposed: proposedChanges, changed};
+}
+
+// ============================================================
+// Export state
+// ============================================================
+let exportMode = 'upgrades'; // 'upgrades' | 'constants'
+let epPatchMode = 'patch'; // 'patch' | 'changelist'
+
+// Seed copies (captured at load time for diff comparison)
+let SEED_ECONOMY = null;
+let SEED_AI = null;
+let SEED_UPGRADES = null; // factions snapshot
+
+// Capture seeds after data loads
+const _origLoadData = loadData;
+// We'll hook into loadData completion:
+const _origBuildEconomyPanel = buildEconomyPanel;
+
+function captureSeeds(){
+  SEED_ECONOMY = JSON.parse(JSON.stringify(MODEL.economy));
+  SEED_AI = JSON.parse(JSON.stringify(MODEL.ai));
+  SEED_UPGRADES = JSON.parse(JSON.stringify(MODEL.upgrades));
+}
+
+// Patch loadData to capture seeds
+async function loadDataWithSeeds(){
+  await _origLoadData.apply(this, arguments);
+  captureSeeds();
+}
+// Replace global loadData (already called above, re-call is needed — actually we replace before calling)
+// The issue: loadData is already called. We need to hook post-load.
+// Solution: Observe when MODEL is populated.
+// Since loadData is async and already invoked, we add a MutationObserver on the chip.
+const _seedObserver = new MutationObserver(() => {
+  if(MODEL.economy && Object.keys(MODEL.economy).length && !SEED_ECONOMY){
+    captureSeeds();
+  }
+});
+_seedObserver.observe(document.querySelector('#model-status b'), {childList:true, characterData:true, subtree:true});
+
+// ============================================================
+// Export drawer UI wiring
+// ============================================================
+
+const exportDrawer = document.getElementById('export-drawer');
+const epClose = document.getElementById('ep-close');
+const epTitle = document.getElementById('ep-title');
+const epPasteTitle = document.getElementById('ep-paste-title');
+const epPasteHint = document.getElementById('ep-paste-hint');
+const epPasteArea = document.getElementById('ep-paste-area');
+const epParseStatus = document.getElementById('ep-parse-status');
+
+// Raw paste text — preserved with original line endings (\r\n) because
+// the textarea DOM normalizes \r\n to \n on .value assignment.
+// All patch operations must read _rawPasteText, not epPasteArea.value.
+let _rawPasteText = '';
+const epOutputCode = document.getElementById('ep-output-code');
+const epOutputTitle = document.getElementById('ep-output-title');
+
+function openExportDrawer(mode){
+  exportMode = mode;
+  exportDrawer.classList.add('open');
+
+  if(mode === 'upgrades'){
+    const f = techFaction || 'CDF';
+    epTitle.textContent = 'Export — Upgrades_' + f + '.sqf';
+    epPasteTitle.textContent = 'Paste Upgrades_' + f + '.sqf source';
+    epPasteHint.textContent =
+      'Paste the contents of Upgrades_' + f + '.sqf. ' +
+      'Export patches ONLY changed values in-place. ENABLED runtime expressions are never rewritten. ' +
+      'A no-op export is byte-identical to the input.';
+    epOutputTitle.textContent = 'Upgrades_' + f + '.sqf output';
+  } else {
+    epTitle.textContent = 'Export — Init_CommonConstants.sqf';
+    epPasteTitle.textContent = 'Paste Init_CommonConstants.sqf source';
+    epPasteHint.textContent =
+      'Paste the contents of Init_CommonConstants.sqf. ' +
+      'Only constants that exist in the pasted file AND were changed will be patched. ' +
+      'Proposed AI-refactor constants go to a labelled separate block.';
+    epOutputTitle.textContent = 'Init_CommonConstants.sqf output';
+  }
+
+  // Reset raw paste text so stale source from a previous session doesn't bleed in
+  _rawPasteText = '';
+  // Reset output
+  epOutputCode.innerHTML = '<span style="color:#636d78;font-style:italic">Click Generate to produce output.</span>';
+  updateParseStatus();
+}
+
+epClose.addEventListener('click', () => exportDrawer.classList.remove('open'));
+exportDrawer.addEventListener('click', e => {
+  if(e.target === exportDrawer) exportDrawer.classList.remove('open');
+});
+
+document.getElementById('btn-open-export-upgrades').addEventListener('click', () => openExportDrawer('upgrades'));
+document.getElementById('btn-open-export-constants').addEventListener('click', () => openExportDrawer('constants'));
+
+// Mode tabs
+document.querySelectorAll('.ep-mode-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.ep-mode-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    epPatchMode = btn.dataset.epmode;
+    const isPatch = epPatchMode === 'patch';
+    document.getElementById('ep-paste-section').style.display = isPatch ? '' : 'none';
+    epOutputCode.innerHTML = '<span style="color:#636d78;font-style:italic">Click Generate to produce output.</span>';
+  });
+});
+
+// Parse status update on textarea change.
+// Also capture raw text (with \r\n preserved) from paste events before the
+// browser normalises line endings in .value.
+epPasteArea.addEventListener('paste', (e) => {
+  e.preventDefault();
+  const raw = e.clipboardData.getData('text');
+  _rawPasteText = raw;
+  // Insert into textarea manually so .value displays correctly
+  const start = epPasteArea.selectionStart;
+  const end   = epPasteArea.selectionEnd;
+  const cur   = epPasteArea.value;
+  epPasteArea.value = cur.slice(0, start) + raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n') + cur.slice(end);
+  updateParseStatus();
+});
+epPasteArea.addEventListener('input', () => {
+  // If input fired without a preceding paste event, raw text is stale — clear it
+  // so the fallback to .value (normalised but correct) is used instead.
+  _rawPasteText = '';
+  updateParseStatus();
+});
+
+function updateParseStatus(){
+  const text = epPasteArea.value.trim();
+  if(!text){
+    epParseStatus.innerHTML = '<span class="st-none">No source pasted — will generate change-list instead</span>';
+    return;
+  }
+  try{
+    if(exportMode === 'upgrades'){
+      const spans = parseUpgradesSpans(text);
+      const found = Object.keys(spans).length;
+      if(found === 0){
+        epParseStatus.innerHTML = '<span class="st-err">⚠ No WFBE_C_UPGRADES_%1_* blocks found — is this a faction file?</span>';
+      } else {
+        epParseStatus.innerHTML = '<span class="st-ok">✓ Found ' + found + '/6 array blocks. Ready for patch-in-place.</span>';
+      }
+    } else {
+      const spans = parseConstantSpans(text);
+      const found = Object.keys(spans).length;
+      epParseStatus.innerHTML = '<span class="st-ok">✓ Found ' + found + ' tracked constants. Ready for patch-in-place.</span>';
+    }
+  } catch(e){
+    epParseStatus.innerHTML = '<span class="st-err">⚠ Parse error: ' + escHtml(e.message) + '</span>';
+  }
+}
+
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ---- Generate ----
+document.getElementById('ep-btn-generate').addEventListener('click', generateExport);
+
+let _lastGeneratedText = '';
+let _lastDownloadName = 'export.sqf';
+
+function generateExport(){
+  if(!SEED_ECONOMY) captureSeeds(); // safety
+  if(exportMode === 'upgrades'){
+    generateUpgradesExport();
+  } else {
+    generateConstantsExport();
+  }
+}
+
+function generateUpgradesExport(){
+  const faction = techFaction || 'CDF';
+  const fd = MODEL.upgrades && MODEL.upgrades.factions && MODEL.upgrades.factions[faction];
+  if(!fd){ showOutputError('No faction data loaded.'); return; }
+
+  _lastDownloadName = 'Upgrades_' + faction + '.sqf';
+
+  const pasteText = _rawPasteText || epPasteArea.value;
+  const isPatchMode = epPatchMode === 'patch' && pasteText.trim().length > 0;
+
+  if(isPatchMode){
+    // Paste-and-patch mode
+    const origFd = SEED_UPGRADES && SEED_UPGRADES.factions && SEED_UPGRADES.factions[faction];
+    if(!origFd){ showOutputError('Seed data not available for comparison.'); return; }
+
+    try{
+      const patched = patchUpgradesFile(pasteText, fd, origFd);
+      _lastGeneratedText = patched;
+      showOutputText(patched, 'patch', faction, pasteText);
+    } catch(e){
+      showOutputError('Patch error: ' + e.message);
+    }
+  } else {
+    // Change-list mode
+    const origFd = SEED_UPGRADES && SEED_UPGRADES.factions && SEED_UPGRADES.factions[faction];
+    const changed = findUpgradeChangedKeys(fd, origFd);
+    const text = generateUpgradesChangeList(faction, fd, changed, origFd);
+    _lastGeneratedText = text;
+    showOutputText(text, 'changelist', faction, null);
+  }
+}
+
+function findUpgradeChangedKeys(fd, origFd){
+  if(!origFd) return null; // emit all
+  const changed = new Set();
+  ['enabled','costs','levels','links','times','ai_order'].forEach(k => {
+    if(!deepEq(fd[k], origFd[k])) changed.add(k);
+  });
+  return changed;
+}
+
+function generateUpgradesChangeList(faction, fd, changed, origFd){
+  const lines = [];
+  lines.push('// ============================================================');
+  lines.push('// Upgrades_' + faction + '.sqf — change-list');
+  lines.push('// Paste these setVariable blocks into your faction file.');
+  if(changed && changed.size === 0){
+    lines.push('// No changes detected vs. seed data.');
+    lines.push('// ============================================================');
+    return lines.join('\n');
+  }
+  lines.push('// ============================================================');
+  lines.push('');
+
+  const block = regenerateUpgradesBlock(faction, fd, changed);
+  lines.push(block);
+  return lines.join('\n');
+}
+
+function generateConstantsExport(){
+  if(!SEED_ECONOMY || !SEED_AI){ captureSeeds(); }
+
+  const pasteText = _rawPasteText || epPasteArea.value;
+  const isPatchMode = epPatchMode === 'patch' && pasteText.trim().length > 0;
+  _lastDownloadName = 'Init_CommonConstants.sqf';
+
+  if(isPatchMode){
+    try{
+      const {text, proposed, changed} = patchConstantsFile(
+        pasteText, MODEL.economy, MODEL.ai, SEED_ECONOMY, SEED_AI
+      );
+      _lastGeneratedText = buildConstantsPatchedOutput(text, proposed, changed);
+      showOutputText(_lastGeneratedText, 'patch-constants', null, pasteText);
+    } catch(e){
+      showOutputError('Patch error: ' + e.message);
+    }
+  } else {
+    // Change-list
+    const econChanges = {};
+    const aiChangesLive = {};
+    const aiChangesProposed = {};
+
+    Object.entries(MODEL.economy).forEach(([k,v]) => {
+      if(!deepEq(v, SEED_ECONOMY[k])) econChanges[k] = v;
+    });
+    Object.entries(MODEL.ai).forEach(([k,v]) => {
+      if(DISPLAY_ONLY_KEYS.has(k)) return;
+      if(!deepEq(v, SEED_AI[k])){
+        if(PROPOSED_AI_KEYS.has(k)) aiChangesProposed[k] = v;
+        else aiChangesLive[k] = v;
+      }
+    });
+
+    const text = generateConstantsChangeList(econChanges, aiChangesLive, aiChangesProposed);
+    _lastGeneratedText = text;
+    showOutputText(text, 'changelist-constants', null, null);
+  }
+}
+
+// Build the final output when in patch mode for constants:
+// = patched text + a trailing block for proposed constants (if any changed)
+function buildConstantsPatchedOutput(patchedText, proposed, changed){
+  if(Object.keys(proposed).length === 0) return patchedText;
+  const propLines = [
+    '',
+    '// ============================================================',
+    '// Proposed (AI refactor branch) — not in current file',
+    '// Add these constants when integrating the AI refactor.',
+    '// ============================================================',
+  ];
+  Object.entries(proposed).forEach(([k,v]) => {
+    propLines.push(k + ' = ' + sqfVal(v) + ';');
+  });
+  return patchedText + '\n' + propLines.join('\n') + '\n';
+}
+
+function showOutputError(msg){
+  epOutputCode.innerHTML = '<span style="color:var(--danger)">Error: ' + escHtml(msg) + '</span>';
+}
+
+function showOutputText(text, kind, faction, origText){
+  // Syntax-highlight: if patch mode, diff against origText to mark changed lines
+  if((kind === 'patch' || kind === 'patch-constants') && origText){
+    const origLines = origText.split('\n');
+    const newLines = text.split('\n');
+    const html = newLines.map((line, i) => {
+      const esc = escHtml(line);
+      if(i >= origLines.length || line !== origLines[i]){
+        return '<span class="hi-changed">' + esc + '</span>';
+      }
+      return esc;
+    }).join('\n');
+    epOutputCode.innerHTML = html;
+  } else if(kind === 'patch-constants' && origText){
+    // Same as above but also mark the proposed block
+    const origLines = origText.split('\n');
+    const newLines = text.split('\n');
+    let inProposed = false;
+    const html = newLines.map((line, i) => {
+      const esc = escHtml(line);
+      if(line.includes('Proposed (AI refactor branch)')) inProposed = true;
+      if(inProposed) return '<span class="hi-proposed">' + esc + '</span>';
+      if(i >= origLines.length || line !== origLines[i]){
+        return '<span class="hi-changed">' + esc + '</span>';
+      }
+      return esc;
+    }).join('\n');
+    epOutputCode.innerHTML = html;
+  } else {
+    // Change-list or full regen — just highlight proposed block
+    let inProposed = false;
+    const html = text.split('\n').map(line => {
+      const esc = escHtml(line);
+      if(line.includes('Proposed (AI refactor branch)')) inProposed = true;
+      if(inProposed) return '<span class="hi-proposed">' + esc + '</span>';
+      return esc;
+    }).join('\n');
+    epOutputCode.innerHTML = html;
+  }
+}
+
+// Copy button
+document.getElementById('ep-btn-copy').addEventListener('click', () => {
+  if(!_lastGeneratedText){ alert('Generate first.'); return; }
+  navigator.clipboard.writeText(_lastGeneratedText).then(() => {
+    const btn = document.getElementById('ep-btn-copy');
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = _lastGeneratedText;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
+});
+
+// Download button
+document.getElementById('ep-btn-download').addEventListener('click', () => {
+  if(!_lastGeneratedText){ alert('Generate first.'); return; }
+  const blob = new Blob([_lastGeneratedText], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = _lastDownloadName;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// Expose export functions for Playwright testing
+window.EXPORT = {
+  openUpgrades: () => openExportDrawer('upgrades'),
+  openConstants: () => openExportDrawer('constants'),
+  setSource: (text) => { _rawPasteText = text; epPasteArea.value = text; updateParseStatus(); },
+  generate: generateExport,
+  getOutput: () => _lastGeneratedText,
+  patchMode: (m) => { epPatchMode = m; },
+  getSeeds: () => ({ economy: SEED_ECONOMY, ai: SEED_AI, upgrades: SEED_UPGRADES }),
+  captureSeeds,
+  parseUpgradesSpans,
+  parseConstantSpans,
+  patchUpgradesFile,
+  patchConstantsFile,
+  deepEq,
+};
+
+</script>
+</body>
+</html>
