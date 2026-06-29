@@ -79,9 +79,11 @@ h1,h2,h3{font-family:Oswald,Inter,sans-serif;font-weight:600;letter-spacing:.5px
 .upgrade-row.unconfigured{opacity:.5}
 .upgrade-head{
   display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;
-  background:var(--gunmetal);border-bottom:1px solid transparent;user-select:none;
-  transition:border-color .15s
+  background:var(--gunmetal);border:none;border-bottom:1px solid transparent;user-select:none;
+  transition:border-color .15s;width:100%;text-align:left;
+  font-family:inherit;color:inherit;border-radius:0;
 }
+.upgrade-head:focus-visible{outline:2px solid var(--orange);outline-offset:-2px}
 .upgrade-row.open .upgrade-head{border-bottom-color:var(--line)}
 .upgrade-head:hover{background:#1a1f26}
 .upgrade-head .u-id{font-family:'JetBrains Mono',monospace;font-size:10px;color:#636d78;width:22px;flex-shrink:0}
@@ -273,6 +275,9 @@ input[type=number].array-el{width:64px;flex-shrink:0}
 .aqm-add-row button{white-space:nowrap}
 .aqm-empty{font-size:11px;color:#636d78;font-style:italic;text-align:center;padding:16px 0}
 
+/* ---- Screen-reader only utility ---- */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
 /* ---- Scrollbar ---- */
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-thumb{background:var(--steel2);border-radius:4px}
@@ -284,12 +289,15 @@ button.primary{
   color:#1a1208;font-weight:600;border-radius:5px;padding:7px 14px;font-size:12px;font-family:inherit
 }
 button.primary:hover{background:var(--orange-deep)}
+button.primary:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 button.sec{
   cursor:pointer;background:var(--steel2);border:1px solid var(--line);
   color:var(--bone);border-radius:5px;padding:7px 14px;font-size:12px;font-family:inherit
 }
 button.sec:hover{border-color:var(--orange);color:var(--orange)}
 button.sec:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
+button.sec:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+button:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
 
 /* ---- Export drawer ---- */
 .export-drawer{
@@ -408,17 +416,17 @@ button.sec:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
 <div class="app">
 
   <!-- ===== Tab bar ===== -->
-  <div class="tab-bar">
-    <button class="active" data-tab="tech">Tech-Tree</button>
-    <button data-tab="economy">Economy</button>
-    <button data-tab="ai">AI Commander</button>
+  <div class="tab-bar" role="tablist" aria-label="Editor panels">
+    <button class="active" id="tab-tech" data-tab="tech" role="tab" aria-selected="true" aria-controls="panel-tech">Tech-Tree</button>
+    <button id="tab-economy" data-tab="economy" role="tab" aria-selected="false" aria-controls="panel-economy">Economy</button>
+    <button id="tab-ai" data-tab="ai" role="tab" aria-selected="false" aria-controls="panel-ai">AI Commander</button>
   </div>
 
   <!-- ===== Panels ===== -->
   <div class="panels">
 
     <!-- === Tech-Tree panel === -->
-    <div class="panel active" id="panel-tech">
+    <div class="panel active" id="panel-tech" role="tabpanel" aria-labelledby="tab-tech">
       <div class="tech-layout">
 
         <!-- Main: upgrade list -->
@@ -445,8 +453,10 @@ button.sec:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
             <div class="ai-order-body">
               <div class="ai-order-list" id="ai-order-list"></div>
               <div class="ai-order-add">
-                <select id="ai-add-upgrade-sel"></select>
-                <input type="number" id="ai-add-level" min="1" value="1" title="Level">
+                <label for="ai-add-upgrade-sel" class="sr-only">Upgrade</label>
+                <select id="ai-add-upgrade-sel" aria-label="Upgrade to add"></select>
+                <label for="ai-add-level" class="sr-only">Level</label>
+                <input type="number" id="ai-add-level" min="1" value="1" aria-label="Level" title="Level">
                 <button class="primary" id="ai-add-btn">+ Add</button>
               </div>
             </div>
@@ -478,7 +488,7 @@ button.sec:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
     </div>
 
     <!-- === Economy panel === -->
-    <div class="panel" id="panel-economy">
+    <div class="panel" id="panel-economy" role="tabpanel" aria-labelledby="tab-economy">
       <div class="econ-layout">
 
         <!-- Main scroll area -->
@@ -501,6 +511,13 @@ button.sec:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
               <input type="number" id="preview-coef" readonly style="background:#0d1014;color:var(--orange)">
             </div>
             <div class="result">Income = <b id="preview-result">—</b></div>
+          </div>
+
+          <!-- Cross-tool link: Sector Planner -->
+          <div class="info-card" id="sector-planner-link-card">
+            <h4>Town Supply Values</h4>
+            <p>Income is driven by each town's supply value (SV). Configure town types and their SVs in the Sector &amp; Town Planner.</p>
+            <button class="sec" id="btn-open-sector-planner" style="margin-top:8px;width:100%;font-size:11px">Open Sector Planner →</button>
           </div>
 
           <!-- Constant count info -->
@@ -542,7 +559,7 @@ button.sec:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
     </div>
 
     <!-- === AI Commander panel === -->
-    <div class="panel" id="panel-ai">
+    <div class="panel" id="panel-ai" role="tabpanel" aria-labelledby="tab-ai">
       <div class="ai-panel-layout">
 
         <!-- Main: AI constant groups -->
@@ -574,8 +591,9 @@ button.sec:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
               <div class="aqm-count" id="aqm-count">0 steps</div>
               <div id="aqm-list"><!-- rendered by JS --></div>
               <div class="aqm-add-row">
-                <select id="aqm-add-sel"></select>
-                <input type="number" id="aqm-add-level" min="1" value="1" title="Level">
+                <select id="aqm-add-sel" aria-label="Upgrade to add"></select>
+                <label for="aqm-add-level" class="sr-only">Level</label>
+                <input type="number" id="aqm-add-level" min="1" value="1" aria-label="Level" title="Level">
                 <button class="primary" id="aqm-add-btn">+ Add</button>
               </div>
             </div>
@@ -612,14 +630,14 @@ button.sec:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
   <div class="export-pane" id="export-pane">
     <div class="export-pane-head">
       <h2 id="ep-title">Export</h2>
-      <button class="ep-close" id="ep-close" title="Close">✕</button>
+      <button class="ep-close" id="ep-close" title="Close" aria-label="Close export panel">✕</button>
     </div>
     <div class="export-pane-body">
 
       <!-- Mode tabs -->
-      <div class="ep-mode-tabs">
-        <button class="ep-mode-tab active" data-epmode="patch" id="ep-tab-patch">Paste &amp; Patch</button>
-        <button class="ep-mode-tab" data-epmode="changelist" id="ep-tab-changelist">Change-list</button>
+      <div class="ep-mode-tabs" role="tablist" aria-label="Export mode">
+        <button class="ep-mode-tab active" data-epmode="patch" id="ep-tab-patch" role="tab" aria-selected="true">Paste &amp; Patch</button>
+        <button class="ep-mode-tab" data-epmode="changelist" id="ep-tab-changelist" role="tab" aria-selected="false">Change-list</button>
       </div>
 
       <!-- Paste source (only in patch mode) -->
@@ -629,7 +647,7 @@ button.sec:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
         </div>
         <div class="ep-section-body">
           <div class="ep-paste-hint" id="ep-paste-hint">Paste the contents of the target SQF file below. Export will patch only the values you changed, leaving all other bytes (expressions, comments) untouched. A no-op export is byte-identical to the input.</div>
-          <textarea class="ep-paste-area" id="ep-paste-area" spellcheck="false" placeholder="Paste file contents here…"></textarea>
+          <textarea class="ep-paste-area" id="ep-paste-area" spellcheck="false" placeholder="Paste file contents here…" aria-label="Source file contents to patch"></textarea>
           <div class="ep-parse-status" id="ep-parse-status">
             <span class="st-none">No source pasted — will generate change-list instead</span>
           </div>
@@ -1067,9 +1085,13 @@ document.getElementById('preview-sv').addEventListener('input', updateIncomePrev
 document.querySelectorAll('.tab-bar button').forEach(btn => {
   btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;
-    document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-bar button').forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
     document.getElementById('panel-' + tab).classList.add('active');
   });
 });
@@ -1250,8 +1272,11 @@ function buildUpgradeRow(fd, upgradeIdx){
   row.id = 'upgrade-row-' + upgradeIdx;
 
   // --- Header ---
-  const head = document.createElement('div');
+  const head = document.createElement('button');
+  head.type = 'button';
   head.className = 'upgrade-head';
+  head.setAttribute('aria-expanded', 'false');
+  head.setAttribute('aria-controls', 'upgrade-body-' + upgradeIdx);
 
   const idSpan = document.createElement('span');
   idSpan.className = 'u-id';
@@ -1292,7 +1317,8 @@ function buildUpgradeRow(fd, upgradeIdx){
 
   // Toggle expand on click
   head.addEventListener('click', () => {
-    row.classList.toggle('open');
+    const isOpen = row.classList.toggle('open');
+    head.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
   });
 
   row.appendChild(head);
@@ -1300,6 +1326,7 @@ function buildUpgradeRow(fd, upgradeIdx){
   // --- Body ---
   const body = document.createElement('div');
   body.className = 'upgrade-body';
+  body.id = 'upgrade-body-' + upgradeIdx;
 
   // Enable toggle
   body.appendChild(buildEnableToggle(fd, upgradeIdx, badge));
@@ -3045,24 +3072,51 @@ function openExportDrawer(mode){
   document.getElementById('ep-btn-generate').focus();
 }
 
-epClose.addEventListener('click', () => exportDrawer.classList.remove('open'));
+function closeExportDrawer(){
+  exportDrawer.classList.remove('open');
+  // Return focus to the button that opened the drawer
+  if(_exportDrawerOpener) _exportDrawerOpener.focus();
+}
+
+let _exportDrawerOpener = null;
+
+epClose.addEventListener('click', closeExportDrawer);
 exportDrawer.addEventListener('click', e => {
-  if(e.target === exportDrawer) exportDrawer.classList.remove('open');
+  if(e.target === exportDrawer) closeExportDrawer();
 });
 document.addEventListener('keydown', e => {
   if(e.key === 'Escape' && exportDrawer.classList.contains('open')){
-    exportDrawer.classList.remove('open');
+    closeExportDrawer();
+    return;
+  }
+  // Focus trap: keep Tab inside the drawer while open
+  if(e.key === 'Tab' && exportDrawer.classList.contains('open')){
+    const focusable = exportDrawer.querySelectorAll(
+      'button:not([disabled]),textarea,input:not([disabled]),select:not([disabled]),[tabindex="0"]'
+    );
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if(!focusable.length) return;
+    if(e.shiftKey){
+      if(document.activeElement === first){ e.preventDefault(); last.focus(); }
+    } else {
+      if(document.activeElement === last){ e.preventDefault(); first.focus(); }
+    }
   }
 });
 
-document.getElementById('btn-open-export-upgrades').addEventListener('click', () => openExportDrawer('upgrades'));
-document.getElementById('btn-open-export-constants').addEventListener('click', () => openExportDrawer('constants'));
+document.getElementById('btn-open-export-upgrades').addEventListener('click', (e) => { _exportDrawerOpener = e.currentTarget; openExportDrawer('upgrades'); });
+document.getElementById('btn-open-export-constants').addEventListener('click', (e) => { _exportDrawerOpener = e.currentTarget; openExportDrawer('constants'); });
 
 // Mode tabs
 document.querySelectorAll('.ep-mode-tab').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.ep-mode-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.ep-mode-tab').forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
     btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
     epPatchMode = btn.dataset.epmode;
     const isPatch = epPatchMode === 'patch';
     document.getElementById('ep-paste-section').style.display = isPatch ? '' : 'none';
@@ -3327,6 +3381,15 @@ document.getElementById('ep-btn-download').addEventListener('click', () => {
   a.download = _lastDownloadName;
   a.click();
   URL.revokeObjectURL(url);
+});
+
+// ============================================================
+// Cross-tool link: Sector Planner
+// Income = round(townSV × INCOME_COEF). Town SVs are configured in the
+// Sector Planner — opening it from here closes the loop for balance tuning.
+// ============================================================
+document.getElementById('btn-open-sector-planner').addEventListener('click', () => {
+  window.open('https://rayswaynl.github.io/sector-planner/', '_blank', 'noopener');
 });
 
 // ============================================================
