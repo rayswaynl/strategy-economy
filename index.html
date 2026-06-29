@@ -288,6 +288,62 @@ button.sec{
   color:var(--bone);border-radius:5px;padding:7px 14px;font-size:12px;font-family:inherit
 }
 button.sec:hover{border-color:var(--orange);color:var(--orange)}
+
+/* ---- Export drawer ---- */
+.export-drawer{
+  position:fixed;inset:0;z-index:100;display:none;flex-direction:column;
+  background:rgba(10,12,14,.7);backdrop-filter:blur(2px);
+}
+.export-drawer.open{display:flex}
+.export-pane{
+  margin:auto;width:min(860px,96vw);max-height:90vh;background:var(--gunmetal);
+  border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;overflow:hidden
+}
+.export-pane-head{
+  display:flex;align-items:center;gap:12px;padding:12px 18px;
+  background:#101317;border-bottom:1px solid var(--line);flex-shrink:0
+}
+.export-pane-head h2{font-family:Oswald,sans-serif;font-size:16px;letter-spacing:1px;color:var(--bone);text-transform:uppercase}
+.export-pane-head .ep-close{margin-left:auto;font-size:20px;background:none;border:none;color:#9aa3ad;cursor:pointer;line-height:1}
+.export-pane-head .ep-close:hover{color:var(--bone)}
+.export-pane-body{overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:20px}
+
+/* Paste source section */
+.ep-section{background:var(--steel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.ep-section-head{padding:9px 14px;background:var(--gunmetal);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.ep-section-head h3{font-family:Oswald,sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--bone);flex:1}
+.ep-section-body{padding:12px 14px}
+.ep-paste-hint{font-size:11px;color:#636d78;font-family:'JetBrains Mono',monospace;margin-bottom:8px}
+.ep-paste-area{
+  width:100%;min-height:80px;max-height:140px;
+  background:#0d1014;border:1px solid var(--line);border-radius:5px;
+  color:#9aa3ad;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.5;
+  padding:6px 8px;resize:vertical;outline:none
+}
+.ep-paste-area:focus{border-color:var(--orange)}
+.ep-parse-status{font-size:10px;font-family:'JetBrains Mono',monospace;margin-top:6px;display:flex;align-items:center;gap:6px}
+.ep-parse-status .st-ok{color:#6abf6a}
+.ep-parse-status .st-err{color:var(--danger)}
+.ep-parse-status .st-none{color:#636d78}
+
+/* Output area */
+.ep-output-section{background:var(--steel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.ep-output-head{padding:9px 14px;background:var(--gunmetal);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ep-output-head h3{font-family:Oswald,sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--bone)}
+.ep-output-head .ep-out-btns{margin-left:auto;display:flex;gap:6px}
+.ep-code{
+  padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.6;
+  color:#9aa3ad;white-space:pre-wrap;word-break:break-all;max-height:320px;overflow-y:auto;
+  background:#0d1014;
+}
+.ep-code .hi-changed{color:var(--orange);background:#1a0e00;border-radius:2px;padding:0 1px}
+.ep-code .hi-proposed{color:#8abf5a;background:#102010;border-radius:2px;padding:0 1px}
+.ep-code .hi-section{color:#9aa3ad;opacity:.5}
+.ep-no-changes{font-size:11px;color:#636d78;font-style:italic;padding:12px 14px;font-family:'JetBrains Mono',monospace}
+.ep-mode-tabs{display:flex;gap:4px;margin-bottom:4px}
+.ep-mode-tab{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.8px;text-transform:uppercase;
+  background:none;border:1px solid var(--line);color:#9aa3ad;cursor:pointer;padding:4px 10px;border-radius:4px}
+.ep-mode-tab.active{background:var(--orange);color:#1a1208;border-color:var(--orange)}
 </style>
 </head>
 <body>
@@ -504,12 +560,58 @@ button.sec:hover{border-color:var(--orange);color:var(--orange)}
   <!-- ===== Export bar ===== -->
   <div class="export-bar">
     <span class="lbl">Export</span>
-    <button class="primary" disabled title="Available after Task 5">Export Economy Block</button>
-    <button class="sec" disabled title="Available after Task 5">Copy SQF</button>
+    <button class="primary" id="btn-open-export-upgrades">Upgrades_&lt;F&gt;.sqf</button>
+    <button class="sec" id="btn-open-export-constants">Init_CommonConstants.sqf</button>
     <div class="spacer"></div>
-    <span class="note">Full export (regenerate SQF config) ships in Task 5</span>
+    <span class="note" id="export-bar-note">Paste source → patch-in-place (no-op = byte-identical) · or get change-list</span>
   </div>
 
+</div>
+
+<!-- ===== Export Drawer ===== -->
+<div class="export-drawer" id="export-drawer" role="dialog" aria-modal="true">
+  <div class="export-pane" id="export-pane">
+    <div class="export-pane-head">
+      <h2 id="ep-title">Export</h2>
+      <button class="ep-close" id="ep-close" title="Close">✕</button>
+    </div>
+    <div class="export-pane-body">
+
+      <!-- Mode tabs -->
+      <div class="ep-mode-tabs">
+        <button class="ep-mode-tab active" data-epmode="patch" id="ep-tab-patch">Paste &amp; Patch</button>
+        <button class="ep-mode-tab" data-epmode="changelist" id="ep-tab-changelist">Change-list</button>
+      </div>
+
+      <!-- Paste source (only in patch mode) -->
+      <div class="ep-section" id="ep-paste-section">
+        <div class="ep-section-head">
+          <h3 id="ep-paste-title">Paste source file</h3>
+        </div>
+        <div class="ep-section-body">
+          <div class="ep-paste-hint" id="ep-paste-hint">Paste the contents of the target SQF file below. Export will patch only the values you changed, leaving all other bytes (expressions, comments) untouched. A no-op export is byte-identical to the input.</div>
+          <textarea class="ep-paste-area" id="ep-paste-area" spellcheck="false" placeholder="Paste file contents here…"></textarea>
+          <div class="ep-parse-status" id="ep-parse-status">
+            <span class="st-none">No source pasted — will generate change-list instead</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Output -->
+      <div class="ep-output-section" id="ep-output-section">
+        <div class="ep-output-head">
+          <h3 id="ep-output-title">Output</h3>
+          <div class="ep-out-btns">
+            <button class="sec" id="ep-btn-generate">Generate</button>
+            <button class="sec" id="ep-btn-copy" title="Copy to clipboard">Copy</button>
+            <button class="sec" id="ep-btn-download" title="Download file">Download</button>
+          </div>
+        </div>
+        <div class="ep-code" id="ep-output-code"><span style="color:#636d78;font-style:italic">Click Generate to produce output.</span></div>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <script>
@@ -2123,6 +2225,1058 @@ document.getElementById('econ-main').addEventListener('change', (e) => {
     }
   }
 });
+
+// ============================================================
+// Export — Task 5
+// ============================================================
+
+// Upgrade ID index → name map (reverse of MODEL.upgrades.ids)
+function getUpgradeIdToName(){
+  const ids = (MODEL.upgrades && MODEL.upgrades.ids) || {};
+  const map = {};
+  Object.entries(ids).forEach(([name, idx]) => { map[idx] = name; });
+  return map;
+}
+
+// ---- SQF value serialisation helpers ----
+
+function sqfBool(v){ return v ? 'true' : 'false'; }
+
+function sqfNum(v){
+  if(Number.isInteger(v)) return String(v);
+  // Preserve up to 4 significant decimal places, strip trailing zeros
+  return parseFloat(v.toPrecision(8)).toString();
+}
+
+function sqfVal(v){
+  if(v === null || v === undefined) return 'nil';
+  if(typeof v === 'boolean') return sqfBool(v);
+  if(typeof v === 'number') return sqfNum(v);
+  if(Array.isArray(v)) return sqfArr(v);
+  return String(v);
+}
+
+function sqfArr(arr){
+  return '[' + arr.map(sqfVal).join(',') + ']';
+}
+
+// Format a single [funds,supply] cost pair
+function sqfCostPair(pair){ return '[' + pair[0] + ',' + pair[1] + ']'; }
+
+// Format upgrade links entry. The structure is:
+//   [] — no prereq
+//   [id,lvl] — single prereq pair (2 numbers)
+//   [[id,lvl],[id,lvl],...] — multiple prereq pairs
+// We must preserve the exact shape.
+function sqfLinks(entry){
+  if(!Array.isArray(entry) || entry.length === 0) return '[]';
+  // Single pair: [num, num]
+  if(entry.length === 2 && typeof entry[0] === 'number') {
+    const idToName = getUpgradeIdToName();
+    return '[WFBE_UP_' + (idToName[entry[0]] || entry[0]) + ',' + entry[1] + ']';
+  }
+  // List of pairs
+  const idToName = getUpgradeIdToName();
+  const parts = entry.map(sub => {
+    if(!Array.isArray(sub) || sub.length === 0) return '[]';
+    if(sub.length === 2 && typeof sub[0] === 'number'){
+      return '[WFBE_UP_' + (idToName[sub[0]] || sub[0]) + ',' + sub[1] + ']';
+    }
+    // nested list of pairs (e.g. Paratroopers per-level multi-prereq)
+    return '[' + sub.map(p => {
+      if(Array.isArray(p) && p.length === 2) return '[WFBE_UP_' + (idToName[p[0]] || p[0]) + ',' + p[1] + ']';
+      return sqfVal(p);
+    }).join(',') + ']';
+  });
+  return '[' + parts.join(',') + ']';
+}
+
+// ---- AI_ORDER entry serialisation ----
+function sqfAiOrderEntry(entry){
+  const idToName = getUpgradeIdToName();
+  const [id, lvl] = entry;
+  return '[WFBE_UP_' + (idToName[id] || id) + ',' + lvl + ']';
+}
+
+// ---- Regenerate the 6 setVariable blocks for a faction (change-list mode) ----
+function regenerateUpgradesBlock(faction, fd, changedKeys){
+  const lines = [];
+  const side = '_side';
+
+  // ENABLED — only emit if there are non-null true/false changes we can safely write
+  // null entries (expressions) are skipped entirely in change-list mode
+  if(!changedKeys || changedKeys.has('enabled')){
+    const enabledParts = fd.enabled.map((v, i) => {
+      if(v === null) return null; // skip expression entries in snippet
+      return sqfBool(v) + ' //--- ' + (MODEL.upgrades.labels[i] || ('Upgrade '+i));
+    }).filter(v => v !== null);
+    if(enabledParts.length){
+      lines.push('// ENABLED — omits runtime-expression entries (shown as null)');
+      lines.push('missionNamespace setVariable [Format["WFBE_C_UPGRADES_%1_ENABLED", _side], [');
+      lines.push('\t' + enabledParts.join(',\n\t'));
+      lines.push(']];');
+      lines.push('');
+    }
+  }
+
+  // COSTS
+  if(!changedKeys || changedKeys.has('costs')){
+    lines.push('missionNamespace setVariable [Format["WFBE_C_UPGRADES_%1_COSTS", _side], [');
+    const costParts = fd.costs.map((perUpgrade, i) => {
+      const label = MODEL.upgrades.labels[i] || ('Upgrade '+i);
+      if(!Array.isArray(perUpgrade)) return '\t[] //--- ' + label;
+      const pairs = perUpgrade.map(sqfCostPair).join(',');
+      return '\t[' + pairs + '] //--- ' + label;
+    });
+    lines.push(costParts.join(',\n'));
+    lines.push(']];');
+    lines.push('');
+  }
+
+  // LEVELS
+  if(!changedKeys || changedKeys.has('levels')){
+    lines.push('missionNamespace setVariable [Format["WFBE_C_UPGRADES_%1_LEVELS", _side], [');
+    const lvlParts = fd.levels.map((v, i) => {
+      return '\t' + v + ' //--- ' + (MODEL.upgrades.labels[i] || ('Upgrade '+i));
+    });
+    lines.push(lvlParts.join(',\n'));
+    lines.push(']];');
+    lines.push('');
+  }
+
+  // LINKS
+  if(!changedKeys || changedKeys.has('links')){
+    lines.push('missionNamespace setVariable [Format["WFBE_C_UPGRADES_%1_LINKS", _side], [');
+    const linkParts = fd.links.map((entry, i) => {
+      const label = MODEL.upgrades.labels[i] || ('Upgrade '+i);
+      return '\t' + sqfLinks(entry) + ' //--- ' + label;
+    });
+    lines.push(linkParts.join(',\n'));
+    lines.push(']];');
+    lines.push('');
+  }
+
+  // TIMES
+  if(!changedKeys || changedKeys.has('times')){
+    lines.push('missionNamespace setVariable [Format["WFBE_C_UPGRADES_%1_TIMES", _side], [');
+    const timeParts = fd.times.map((perUpgrade, i) => {
+      const label = MODEL.upgrades.labels[i] || ('Upgrade '+i);
+      if(!Array.isArray(perUpgrade)) return '\t[] //--- ' + label;
+      return '\t[' + perUpgrade.join(',') + '] //--- ' + label;
+    });
+    lines.push(timeParts.join(',\n'));
+    lines.push(']];');
+    lines.push('');
+  }
+
+  // AI_ORDER
+  if(!changedKeys || changedKeys.has('ai_order')){
+    lines.push('missionNamespace setVariable [Format["WFBE_C_UPGRADES_%1_AI_ORDER", _side], [');
+    const aoParts = fd.ai_order.map(entry => '\t' + sqfAiOrderEntry(entry));
+    lines.push(aoParts.join(',\n'));
+    lines.push(']];');
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+// ---- Constants change-list mode ----
+// AI constants NOT present in the live file (proposed refactor constants)
+const PROPOSED_AI_KEYS = new Set([
+  'WFBE_C_AI_COMMANDER_STRATEGY_INTERVAL',
+  'WFBE_C_AI_COMMANDER_BASE_INTERVAL',
+  'WFBE_C_AI_COMMANDER_TEAMS_INTERVAL',
+  'WFBE_C_AICOM_FRONTIER_RADIUS',
+  'WFBE_C_AICOM_DISTANCE_DIVISOR',
+  'WFBE_C_AICOM_HQ_PULL_DIVISOR',
+  'WFBE_C_AICOM_FAR_PENALTY',
+  'WFBE_C_AICOM_SPEARHEAD_TOWNS_MAX',
+  'WFBE_C_AICOM_BOOTSTRAP_MAXTIME',
+  'WFBE_C_AICOM_BOOTSTRAP_FUNDS',
+  'WFBE_C_AICOM_BOOTSTRAP_SUPPLY',
+  'WFBE_C_AI_COMMANDER_FUNDS_PER_EXTRA_TEAM',
+  'WFBE_C_AI_COMMANDER_TEAMS_TARGET',
+  'WFBE_C_AI_COMMANDER_RELIEF_MAX',
+  'WFBE_C_AI_COMMANDER_BUILD_GRACE',
+  'WFBE_C_AI_TEAMS_ENABLED',
+  'WFBE_C_AI_TEAMS_JIP_PRESERVE',
+]);
+
+// The hardcoded display-only keys are never exported
+const DISPLAY_ONLY_KEYS = new Set([
+  '_displayOnly_HQ_HUNT_RATIO_ATTACK',
+  '_displayOnly_HQ_HUNT_RATIO_RETREAT',
+  '_displayOnly_HQ_HUNT_RATIO_FLANK',
+]);
+
+function generateConstantsChangeList(econChanges, aiChanges, proposedAiChanges){
+  const lines = [];
+  lines.push('// ============================================================');
+  lines.push('// Init_CommonConstants.sqf — change-list (paste-ready snippets)');
+  lines.push('// Only values you edited from the loaded seed are listed.');
+  lines.push('// ============================================================');
+  lines.push('');
+
+  // Economy changes
+  const econKeys = Object.keys(econChanges);
+  if(econKeys.length){
+    lines.push('// --- Economy constants (paste into Init_CommonConstants.sqf) ---');
+    econKeys.forEach(k => {
+      const v = econChanges[k];
+      lines.push(k + ' = ' + sqfVal(v) + ';');
+    });
+    lines.push('');
+  }
+
+  // AI changes (live file constants)
+  const aiKeys = Object.keys(aiChanges).filter(k => !DISPLAY_ONLY_KEYS.has(k));
+  if(aiKeys.length){
+    lines.push('// --- AI Commander constants (live in current file) ---');
+    aiKeys.forEach(k => {
+      const v = aiChanges[k];
+      lines.push(k + ' = ' + sqfVal(v) + ';');
+    });
+    lines.push('');
+  }
+
+  // Proposed / not-yet-in-file constants
+  const propKeys = Object.keys(proposedAiChanges).filter(k => !DISPLAY_ONLY_KEYS.has(k));
+  if(propKeys.length){
+    lines.push('// --- Proposed (AI refactor branch) — NOT in current file ---');
+    lines.push('// Add these to Init_CommonConstants.sqf when integrating the refactor.');
+    propKeys.forEach(k => {
+      const v = proposedAiChanges[k];
+      lines.push(k + ' = ' + sqfVal(v) + ';');
+    });
+    lines.push('');
+  }
+
+  if(!econKeys.length && !aiKeys.length && !propKeys.length){
+    lines.push('// No changes detected vs. seed data.');
+  }
+
+  return lines.join('\n');
+}
+
+// ============================================================
+// Paste-and-patch engine
+// ============================================================
+
+// Parse a SQF source text to find the char spans of the
+// setVariable value arrays (for Upgrades) or bare assignments (for constants).
+// Returns an array of {key, start, end, rawText} where start..end is
+// the slice of `text` that represents the full value (including array brackets).
+
+// ---- Strip SQF comments for span-finding (returns cleaned text,
+//      BUT we keep offsets matching the original via a character map) ----
+// Actually: we work on original text offsets. We just need to find the
+// VALUE spans robustly. Comments within values are harmless for our replace.
+
+// Find matching bracket starting at pos (pos must be '[')
+function findMatchingBracket(text, pos){
+  let depth = 0;
+  for(let i = pos; i < text.length; i++){
+    if(text[i] === '[') depth++;
+    else if(text[i] === ']'){
+      depth--;
+      if(depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+// ---- Parse Upgrades_<F>.sqf into a span map ----
+// Returns { ENABLED:{start,end}, COSTS:{start,end}, LEVELS:{start,end},
+//           LINKS:{start,end}, TIMES:{start,end}, AI_ORDER:{start,end} }
+// start = position of opening '[', end = position of closing ']' (inclusive)
+function parseUpgradesSpans(text){
+  const kinds = ['ENABLED','COSTS','LEVELS','LINKS','TIMES','AI_ORDER'];
+  const spans = {};
+  for(const kind of kinds){
+    const re = new RegExp(
+      'missionNamespace\\s+setVariable\\s*\\[\\s*' +
+      'Format\\s*\\[\\s*"WFBE_C_UPGRADES_%1_' + kind + '"[^\\]]*\\]\\s*,\\s*(\\[)',
+      'i'
+    );
+    const m = re.exec(text);
+    if(!m) continue;
+    const start = m.index + m[0].length - 1; // position of the '[' we captured
+    const end = findMatchingBracket(text, start);
+    if(end === -1) continue;
+    spans[kind] = { start, end };
+  }
+  return spans;
+}
+
+// ---- Parse Init_CommonConstants.sqf into a span map ----
+// Scans the raw text using absolute char positions — never splits on newlines
+// so \r\n files are handled correctly.
+// Returns { KEY: {start, end, rawVal} }
+// start/end = absolute char positions of the VALUE (exclusive of semicolon)
+function parseConstantSpans(text){
+  const spans = {};
+
+  // Helper: scan from pos to find the end of a SQF value (stops at ';' at depth 0)
+  function scanValueEnd(start){
+    let d = 0, i = start;
+    while(i < text.length){
+      const c = text[i];
+      if(c === '[') d++;
+      else if(c === ']') d--;
+      else if(c === ';' && d === 0) return i;
+      // Stop at newline only if not inside array (handles single-line assignments)
+      else if((c === '\r' || c === '\n') && d === 0) return i;
+      i++;
+    }
+    return i;
+  }
+
+  // Helper: extract brace body {…} starting at bracePos
+  function extractBraceBody(start){
+    // start points at '{'
+    let d = 0, i = start;
+    while(i < text.length){
+      if(text[i] === '{') d++;
+      else if(text[i] === '}'){
+        d--;
+        if(d === 0) return { bodyStart: start+1, bodyEnd: i };
+      }
+      i++;
+    }
+    return { bodyStart: start+1, bodyEnd: i };
+  }
+
+  // --- Pass 1: bare assignments  VARNAME = VALUE;
+  // Use regex on full text (absolute indices preserved)
+  const bareRe = /\b([A-Z][A-Z0-9_]+)\s*=\s*/g;
+  let m;
+  while((m = bareRe.exec(text)) !== null){
+    const name = m[1];
+    if(!shouldTrackConstant(name)) continue;
+    if(spans[name]) continue;
+    const vs = m.index + m[0].length;
+    const rawChunk = text.slice(vs, Math.min(vs+3, text.length)).trimStart();
+    if(rawChunk.startsWith('if') || rawChunk.startsWith('IF')) continue;
+    const ve = scanValueEnd(vs);
+    const rawVal = text.slice(vs, ve).trim();
+    if(rawVal.startsWith('if') || rawVal.startsWith('IF')) continue;
+    spans[name] = { start: vs, end: ve, rawVal };
+  }
+
+  // --- Pass 2: isNil guarded form: if (isNil "VARNAME") then {VARNAME = VALUE}
+  // Regex across the full text — handles \r\n correctly since we use \s+
+  const isNilRe = /if\s*\(\s*isNil\s+"([A-Z][A-Z0-9_]*)"\s*\)\s+then\s*(\{)/g;
+  let nm;
+  while((nm = isNilRe.exec(text)) !== null){
+    const name = nm[1];
+    if(!shouldTrackConstant(name)) continue;
+    const {bodyStart, bodyEnd} = extractBraceBody(nm.index + nm[0].length - 1);
+    const bodyText = text.slice(bodyStart, bodyEnd);
+    const iRe = new RegExp('\\b' + name + '\\s*=\\s*', 'i');
+    const im = iRe.exec(bodyText);
+    if(!im) continue;
+    const vs = bodyStart + im.index + im[0].length;
+    const rawChunk = text.slice(vs, Math.min(vs+3, text.length)).trimStart();
+    if(rawChunk.startsWith('if') || rawChunk.startsWith('IF')) continue;
+    // Only update if not already found (bare assignment takes precedence for non-debug vars)
+    if(!spans[name]){
+      const ve = scanValueEnd(vs);
+      const rawVal = text.slice(vs, ve).trim();
+      if(!rawVal.startsWith('if') && !rawVal.startsWith('IF')){
+        spans[name] = { start: vs, end: ve, rawVal };
+      }
+    }
+  }
+
+  // --- Pass 3: WF_Debug else-branch  if WF_Debug then {...} else { VARNAME = VALUE; }
+  // This handles WFBE_C_ARTILLERY_INTERVALS etc.
+  const debugRe = /if\s+WF_Debug\s+then\s*(\{)/g;
+  let dm;
+  while((dm = debugRe.exec(text)) !== null){
+    const thenBrace = dm.index + dm[0].length - 1;
+    const {bodyEnd: thenEnd} = extractBraceBody(thenBrace);
+    // Find 'else' after the then block
+    const afterThen = thenEnd + 1;
+    const elseRe = /\s*else\s*(\{)/g;
+    elseRe.lastIndex = afterThen;
+    const em = elseRe.exec(text);
+    if(!em || em.index > afterThen + 20) continue;
+    const elseBrace = em.index + em[0].length - 1;
+    const {bodyStart: elseBodyStart, bodyEnd: elseBodyEnd} = extractBraceBody(elseBrace);
+    const elseBody = text.slice(elseBodyStart, elseBodyEnd);
+
+    const eAssignRe = /\b([A-Z][A-Z0-9_]+)\s*=\s*/g;
+    let ea;
+    while((ea = eAssignRe.exec(elseBody)) !== null){
+      const name = ea[1];
+      if(!shouldTrackConstant(name)) continue;
+      if(spans[name]) continue;
+      const vs = elseBodyStart + ea.index + ea[0].length;
+      const rawChunk = text.slice(vs, Math.min(vs+3, text.length)).trimStart();
+      if(rawChunk.startsWith('if') || rawChunk.startsWith('IF')) continue;
+      const ve = scanValueEnd(vs);
+      const rawVal = text.slice(vs, ve).trim();
+      if(rawVal.startsWith('if') || rawVal.startsWith('IF')) continue;
+      spans[name] = { start: vs, end: ve, rawVal };
+    }
+  }
+
+  return spans;
+}
+
+function shouldTrackConstant(name){
+  // Same set as extract_strategy._should_capture, minus display-only
+  if(DISPLAY_ONLY_KEYS.has(name)) return false;
+  const prefixes = [
+    'WFBE_C_ECONOMY_',
+    'WFBE_C_AI_',
+    'WFBE_C_AICOM_',
+    'WFBE_C_ARTILLERY_INTERVALS',
+    'WFBE_C_RESPAWN_RANGES',
+    'WFBE_C_TOWNS_SUPPLY_LEVELS_',
+    'WFBE_C_UNITS_SUPPORT_',
+    'WFBE_C_UNITS_CREW_COST',
+    'WFBE_C_PLAYERS_GEAR_SELL_COEF',
+    'WFBE_C_BASE_HQ_REPAIR_',
+    'WFBE_C_STRUCTURES_MAX',
+    'TEAM_SKILL_TICKS_',
+    'PLAYER_NUMBER_DIFFERENCE_MODIFIER',
+    'SUPPLY_COMPENSATION_AMOUNT_',
+    'TEAM_WEST_TICKS_NO_PLAYERS',
+    'TEAM_EAST_TICKS_NO_PLAYERS',
+    'SUPPLY_INCOME_TICK_MODIFIER_MULTIPLIER',
+    'WFBE_SUPPLY_MISSION_SCORE_COEF',
+    'WFBE_UPGRADE_SCORE_COEF',
+    'WFBE_C_MAX_ECONOMY_SUPPLY_LIMIT',
+  ];
+  return prefixes.some(p => name.startsWith(p));
+}
+
+// Parse a raw SQF value text back to JS (for comparison)
+function parseSqfValueText(txt){
+  txt = txt.trim();
+  if(txt === 'true') return true;
+  if(txt === 'false') return false;
+  if(txt === 'nil') return null;
+  if(txt.startsWith('[')){
+    // Use a simple eval-like approach: replace WFBE_UP_* with placeholder
+    // then JSON parse
+    try{
+      const json = txt
+        .replace(/WFBE_UP_[A-Z0-9_]+/g, m => {
+          const ids = (MODEL.upgrades && MODEL.upgrades.ids) || {};
+          const name = m.replace('WFBE_UP_','');
+          return (name in ids) ? ids[name] : 0;
+        })
+        .replace(/\btrue\b/gi, 'true')
+        .replace(/\bfalse\b/gi, 'false');
+      return JSON.parse(json);
+    }catch(e){ return txt; }
+  }
+  const n = Number(txt);
+  if(!isNaN(n)) return n;
+  return txt;
+}
+
+// Deep equality check for JS values (numbers, arrays, booleans)
+function deepEq(a, b){
+  if(a === b) return true;
+  if(Array.isArray(a) && Array.isArray(b)){
+    if(a.length !== b.length) return false;
+    return a.every((v, i) => deepEq(v, b[i]));
+  }
+  if(typeof a === 'number' && typeof b === 'number') return Math.abs(a-b) < 1e-9;
+  return false;
+}
+
+// ---- Patch an Upgrades file ----
+// Returns the patched text (byte-identical if no changes).
+function patchUpgradesFile(origText, fd, origFd){
+  // Parse spans from original text
+  const spans = parseUpgradesSpans(origText);
+
+  // Build list of replacements: {start, end, newText}
+  // Apply in REVERSE order so indices stay valid.
+  const replacements = [];
+
+  const kinds = ['ENABLED','COSTS','LEVELS','LINKS','TIMES','AI_ORDER'];
+  for(const kind of kinds){
+    if(!(kind in spans)) continue;
+    const {start, end} = spans[kind];
+    const lowerKind = kind === 'AI_ORDER' ? 'ai_order' : kind.toLowerCase();
+    const modelVal = fd[lowerKind];
+    const origVal = origFd[lowerKind];
+
+    if(kind === 'ENABLED'){
+      // Element-level in-place patching: only replace the true/false tokens that changed.
+      // null entries (runtime expressions) are never touched.
+      const elemReps = buildEnabledElementReplacements(fd.enabled, origText, spans['ENABLED']);
+      for(const r of elemReps) replacements.push(r);
+      continue;
+    }
+
+    // Check if this kind has any changes
+    if(deepEq(modelVal, origVal)) continue;
+
+    // Generate new value text (replaces the whole array span)
+    let newText;
+    if(kind === 'COSTS'){
+      newText = regenerateCostsArray(fd.costs);
+    } else if(kind === 'LEVELS'){
+      newText = regenerateLevelsArray(fd.levels);
+    } else if(kind === 'LINKS'){
+      newText = regenerateLinksArray(fd.links);
+    } else if(kind === 'TIMES'){
+      newText = regenerateTimesArray(fd.times);
+    } else if(kind === 'AI_ORDER'){
+      newText = regenerateAiOrderArray(fd.ai_order);
+    }
+
+    if(newText !== undefined){
+      // Replace span.start..span.end+1 (include the closing ']')
+      replacements.push({start, end: end+1, newText});
+    }
+  }
+
+  // Apply replacements in reverse order (highest start first) so indices stay valid
+  replacements.sort((a,b) => b.start - a.start);
+  let result = origText;
+  for(const {start, end, newText} of replacements){
+    result = result.slice(0, start) + newText + result.slice(end);
+  }
+  return result;
+}
+
+// Patch ENABLED array in-place using absolute positions.
+// Returns { start, end, newText } replacements (for each changed element),
+// or null if nothing changed or can't parse.
+// Called by patchUpgradesFile differently — see below.
+function buildEnabledElementReplacements(enabledModel, origText, span){
+  // The ENABLED span covers [ ... ] (start=opening '[', end=closing ']')
+  // We scan inside to find each element's value token position, then
+  // only replace the true/false token for elements that changed.
+  const replacements = [];
+  const inner = origText.slice(span.start + 1, span.end); // content between [ and ]
+  const base = span.start + 1; // offset to add to inner positions
+
+  // Walk inner text, tracking top-level commas to split elements
+  let depth = 0, elemStart = 0, elemIdx = 0;
+  function processElem(rawElem, elemAbsStart){
+    const modelVal = enabledModel[elemIdx];
+    elemIdx++;
+    if(modelVal === null || modelVal === undefined) return; // leave expression as-is
+    // Strip trailing comment to find the value token
+    const commentIdx = rawElem.indexOf('//');
+    const valuePart = commentIdx !== -1 ? rawElem.slice(0, commentIdx) : rawElem;
+    const trimmed = valuePart.trim().toLowerCase();
+    const expected = modelVal ? 'true' : 'false';
+    if(trimmed === expected) return; // no change needed
+    // Find the position of true/false in rawElem
+    const tokenRe = /\b(true|false)\b/i;
+    const tm = tokenRe.exec(valuePart);
+    if(!tm) return; // can't find token, skip
+    const tokenStart = elemAbsStart + tm.index;
+    const tokenEnd   = tokenStart + tm[0].length;
+    replacements.push({ start: tokenStart, end: tokenEnd, newText: expected });
+  }
+
+  for(let i = 0; i <= inner.length; i++){
+    const c = i < inner.length ? inner[i] : ','; // sentinel comma at end
+    if(c === '[' || c === '(' || c === '{') depth++;
+    else if(c === ']' || c === ')' || c === '}') depth--;
+    else if(c === ',' && depth === 0){
+      const rawElem = inner.slice(elemStart, i);
+      processElem(rawElem, base + elemStart);
+      elemStart = i + 1;
+    }
+  }
+
+  return replacements; // empty = no changes (no-op → caller returns origText unchanged)
+}
+
+// Split a string on top-level commas (not inside brackets)
+function splitTopLevel(text){
+  const items = [];
+  let depth = 0, buf = [], i = 0;
+  while(i < text.length){
+    const c = text[i];
+    if(c === '[' || c === '(' || c === '{') { depth++; buf.push(c); }
+    else if(c === ']' || c === ')' || c === '}') { depth--; buf.push(c); }
+    else if(c === ',' && depth === 0){
+      items.push(buf.join(''));
+      buf = [];
+    } else {
+      buf.push(c);
+    }
+    i++;
+  }
+  if(buf.length) items.push(buf.join(''));
+  return items;
+}
+
+// Regenerate arrays (minimal — use when whole array changed)
+function regenerateCostsArray(costs){
+  const parts = costs.map((perUpgrade, i) => {
+    if(!Array.isArray(perUpgrade)) return '\t[]';
+    return '\t[' + perUpgrade.map(sqfCostPair).join(',') + ']';
+  });
+  return '[\n' + parts.join(',\n') + '\n]';
+}
+
+function regenerateLevelsArray(levels){
+  return '[' + levels.join(',') + ']';
+}
+
+function regenerateTimesArray(times){
+  const parts = times.map(t => {
+    if(!Array.isArray(t)) return '[]';
+    return '[' + t.join(',') + ']';
+  });
+  return '[\n\t' + parts.join(',\n\t') + '\n]';
+}
+
+function regenerateLinksArray(links){
+  const parts = links.map(entry => sqfLinks(entry));
+  return '[\n\t' + parts.join(',\n\t') + '\n]';
+}
+
+function regenerateAiOrderArray(ai_order){
+  const parts = ai_order.map(sqfAiOrderEntry);
+  return '[\n\t' + parts.join(',\n\t') + '\n]';
+}
+
+// ---- Patch a constants file ----
+// Replaces ONLY the value spans of constants that exist in the pasted file
+// AND have changed vs. the seed.
+// Returns {text: patchedText, proposed: {key:newVal}, changed: [{key, oldRaw, newVal}]}
+function patchConstantsFile(origText, econModel, aiModel, seedEcon, seedAi){
+  const spans = parseConstantSpans(origText);
+  const replacements = [];
+  const changed = [];
+  const proposedChanges = {}; // keys not in file
+
+  // Economy constants
+  Object.entries(econModel).forEach(([key, val]) => {
+    if(DISPLAY_ONLY_KEYS.has(key)) return;
+    const seedVal = seedEcon[key];
+    if(deepEq(val, seedVal)) return; // not changed
+
+    if(key in spans){
+      const {start, end, rawVal} = spans[key];
+      const newText = sqfVal(val);
+      replacements.push({start, end, newText, key});
+      changed.push({key, oldRaw: rawVal, newVal: val});
+    }
+    // Economy constants not in file are unusual — just note them
+  });
+
+  // AI constants
+  Object.entries(aiModel).forEach(([key, val]) => {
+    if(DISPLAY_ONLY_KEYS.has(key)) return;
+    const seedVal = seedAi[key];
+    if(deepEq(val, seedVal)) return; // not changed
+
+    if(PROPOSED_AI_KEYS.has(key)){
+      // Not in the live file — segregate
+      proposedChanges[key] = val;
+    } else if(key in spans){
+      const {start, end, rawVal} = spans[key];
+      const newText = sqfVal(val);
+      replacements.push({start, end, newText, key});
+      changed.push({key, oldRaw: rawVal, newVal: val});
+    }
+    // AI key changed but not found in spans + not proposed = unusual, ignore
+  });
+
+  // Apply replacements in reverse order
+  replacements.sort((a,b) => b.start - a.start);
+  let result = origText;
+  for(const {start, end, newText} of replacements){
+    result = result.slice(0, start) + newText + result.slice(end);
+  }
+
+  return {text: result, proposed: proposedChanges, changed};
+}
+
+// ============================================================
+// Export state
+// ============================================================
+let exportMode = 'upgrades'; // 'upgrades' | 'constants'
+let epPatchMode = 'patch'; // 'patch' | 'changelist'
+
+// Seed copies (captured at load time for diff comparison)
+let SEED_ECONOMY = null;
+let SEED_AI = null;
+let SEED_UPGRADES = null; // factions snapshot
+
+// Capture seeds after data loads
+const _origLoadData = loadData;
+// We'll hook into loadData completion:
+const _origBuildEconomyPanel = buildEconomyPanel;
+
+function captureSeeds(){
+  SEED_ECONOMY = JSON.parse(JSON.stringify(MODEL.economy));
+  SEED_AI = JSON.parse(JSON.stringify(MODEL.ai));
+  SEED_UPGRADES = JSON.parse(JSON.stringify(MODEL.upgrades));
+}
+
+// Patch loadData to capture seeds
+async function loadDataWithSeeds(){
+  await _origLoadData.apply(this, arguments);
+  captureSeeds();
+}
+// Replace global loadData (already called above, re-call is needed — actually we replace before calling)
+// The issue: loadData is already called. We need to hook post-load.
+// Solution: Observe when MODEL is populated.
+// Since loadData is async and already invoked, we add a MutationObserver on the chip.
+const _seedObserver = new MutationObserver(() => {
+  if(MODEL.economy && Object.keys(MODEL.economy).length && !SEED_ECONOMY){
+    captureSeeds();
+  }
+});
+_seedObserver.observe(document.querySelector('#model-status b'), {childList:true, characterData:true, subtree:true});
+
+// ============================================================
+// Export drawer UI wiring
+// ============================================================
+
+const exportDrawer = document.getElementById('export-drawer');
+const epClose = document.getElementById('ep-close');
+const epTitle = document.getElementById('ep-title');
+const epPasteTitle = document.getElementById('ep-paste-title');
+const epPasteHint = document.getElementById('ep-paste-hint');
+const epPasteArea = document.getElementById('ep-paste-area');
+const epParseStatus = document.getElementById('ep-parse-status');
+
+// Raw paste text — preserved with original line endings (\r\n) because
+// the textarea DOM normalizes \r\n to \n on .value assignment.
+// All patch operations must read _rawPasteText, not epPasteArea.value.
+let _rawPasteText = '';
+const epOutputCode = document.getElementById('ep-output-code');
+const epOutputTitle = document.getElementById('ep-output-title');
+
+function openExportDrawer(mode){
+  exportMode = mode;
+  exportDrawer.classList.add('open');
+
+  if(mode === 'upgrades'){
+    const f = techFaction || 'CDF';
+    epTitle.textContent = 'Export — Upgrades_' + f + '.sqf';
+    epPasteTitle.textContent = 'Paste Upgrades_' + f + '.sqf source';
+    epPasteHint.textContent =
+      'Paste the contents of Upgrades_' + f + '.sqf. ' +
+      'Export patches ONLY changed values in-place. ENABLED runtime expressions are never rewritten. ' +
+      'A no-op export is byte-identical to the input.';
+    epOutputTitle.textContent = 'Upgrades_' + f + '.sqf output';
+  } else {
+    epTitle.textContent = 'Export — Init_CommonConstants.sqf';
+    epPasteTitle.textContent = 'Paste Init_CommonConstants.sqf source';
+    epPasteHint.textContent =
+      'Paste the contents of Init_CommonConstants.sqf. ' +
+      'Only constants that exist in the pasted file AND were changed will be patched. ' +
+      'Proposed AI-refactor constants go to a labelled separate block.';
+    epOutputTitle.textContent = 'Init_CommonConstants.sqf output';
+  }
+
+  // Reset raw paste text so stale source from a previous session doesn't bleed in
+  _rawPasteText = '';
+  // Reset output
+  epOutputCode.innerHTML = '<span style="color:#636d78;font-style:italic">Click Generate to produce output.</span>';
+  updateParseStatus();
+}
+
+epClose.addEventListener('click', () => exportDrawer.classList.remove('open'));
+exportDrawer.addEventListener('click', e => {
+  if(e.target === exportDrawer) exportDrawer.classList.remove('open');
+});
+
+document.getElementById('btn-open-export-upgrades').addEventListener('click', () => openExportDrawer('upgrades'));
+document.getElementById('btn-open-export-constants').addEventListener('click', () => openExportDrawer('constants'));
+
+// Mode tabs
+document.querySelectorAll('.ep-mode-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.ep-mode-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    epPatchMode = btn.dataset.epmode;
+    const isPatch = epPatchMode === 'patch';
+    document.getElementById('ep-paste-section').style.display = isPatch ? '' : 'none';
+    epOutputCode.innerHTML = '<span style="color:#636d78;font-style:italic">Click Generate to produce output.</span>';
+  });
+});
+
+// Parse status update on textarea change.
+// Also capture raw text (with \r\n preserved) from paste events before the
+// browser normalises line endings in .value.
+epPasteArea.addEventListener('paste', (e) => {
+  e.preventDefault();
+  const raw = e.clipboardData.getData('text');
+  _rawPasteText = raw;
+  // Insert into textarea manually so .value displays correctly
+  const start = epPasteArea.selectionStart;
+  const end   = epPasteArea.selectionEnd;
+  const cur   = epPasteArea.value;
+  epPasteArea.value = cur.slice(0, start) + raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n') + cur.slice(end);
+  updateParseStatus();
+});
+epPasteArea.addEventListener('input', () => {
+  // If input fired without a preceding paste event, raw text is stale — clear it
+  // so the fallback to .value (normalised but correct) is used instead.
+  _rawPasteText = '';
+  updateParseStatus();
+});
+
+function updateParseStatus(){
+  const text = epPasteArea.value.trim();
+  if(!text){
+    epParseStatus.innerHTML = '<span class="st-none">No source pasted — will generate change-list instead</span>';
+    return;
+  }
+  try{
+    if(exportMode === 'upgrades'){
+      const spans = parseUpgradesSpans(text);
+      const found = Object.keys(spans).length;
+      if(found === 0){
+        epParseStatus.innerHTML = '<span class="st-err">⚠ No WFBE_C_UPGRADES_%1_* blocks found — is this a faction file?</span>';
+      } else {
+        epParseStatus.innerHTML = '<span class="st-ok">✓ Found ' + found + '/6 array blocks. Ready for patch-in-place.</span>';
+      }
+    } else {
+      const spans = parseConstantSpans(text);
+      const found = Object.keys(spans).length;
+      epParseStatus.innerHTML = '<span class="st-ok">✓ Found ' + found + ' tracked constants. Ready for patch-in-place.</span>';
+    }
+  } catch(e){
+    epParseStatus.innerHTML = '<span class="st-err">⚠ Parse error: ' + escHtml(e.message) + '</span>';
+  }
+}
+
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ---- Generate ----
+document.getElementById('ep-btn-generate').addEventListener('click', generateExport);
+
+let _lastGeneratedText = '';
+let _lastDownloadName = 'export.sqf';
+
+function generateExport(){
+  if(!SEED_ECONOMY) captureSeeds(); // safety
+  if(exportMode === 'upgrades'){
+    generateUpgradesExport();
+  } else {
+    generateConstantsExport();
+  }
+}
+
+function generateUpgradesExport(){
+  const faction = techFaction || 'CDF';
+  const fd = MODEL.upgrades && MODEL.upgrades.factions && MODEL.upgrades.factions[faction];
+  if(!fd){ showOutputError('No faction data loaded.'); return; }
+
+  _lastDownloadName = 'Upgrades_' + faction + '.sqf';
+
+  const pasteText = _rawPasteText || epPasteArea.value;
+  const isPatchMode = epPatchMode === 'patch' && pasteText.trim().length > 0;
+
+  if(isPatchMode){
+    // Paste-and-patch mode
+    const origFd = SEED_UPGRADES && SEED_UPGRADES.factions && SEED_UPGRADES.factions[faction];
+    if(!origFd){ showOutputError('Seed data not available for comparison.'); return; }
+
+    try{
+      const patched = patchUpgradesFile(pasteText, fd, origFd);
+      _lastGeneratedText = patched;
+      showOutputText(patched, 'patch', faction, pasteText);
+    } catch(e){
+      showOutputError('Patch error: ' + e.message);
+    }
+  } else {
+    // Change-list mode
+    const origFd = SEED_UPGRADES && SEED_UPGRADES.factions && SEED_UPGRADES.factions[faction];
+    const changed = findUpgradeChangedKeys(fd, origFd);
+    const text = generateUpgradesChangeList(faction, fd, changed, origFd);
+    _lastGeneratedText = text;
+    showOutputText(text, 'changelist', faction, null);
+  }
+}
+
+function findUpgradeChangedKeys(fd, origFd){
+  if(!origFd) return null; // emit all
+  const changed = new Set();
+  ['enabled','costs','levels','links','times','ai_order'].forEach(k => {
+    if(!deepEq(fd[k], origFd[k])) changed.add(k);
+  });
+  return changed;
+}
+
+function generateUpgradesChangeList(faction, fd, changed, origFd){
+  const lines = [];
+  lines.push('// ============================================================');
+  lines.push('// Upgrades_' + faction + '.sqf — change-list');
+  lines.push('// Paste these setVariable blocks into your faction file.');
+  if(changed && changed.size === 0){
+    lines.push('// No changes detected vs. seed data.');
+    lines.push('// ============================================================');
+    return lines.join('\n');
+  }
+  lines.push('// ============================================================');
+  lines.push('');
+
+  const block = regenerateUpgradesBlock(faction, fd, changed);
+  lines.push(block);
+  return lines.join('\n');
+}
+
+function generateConstantsExport(){
+  if(!SEED_ECONOMY || !SEED_AI){ captureSeeds(); }
+
+  const pasteText = _rawPasteText || epPasteArea.value;
+  const isPatchMode = epPatchMode === 'patch' && pasteText.trim().length > 0;
+  _lastDownloadName = 'Init_CommonConstants.sqf';
+
+  if(isPatchMode){
+    try{
+      const {text, proposed, changed} = patchConstantsFile(
+        pasteText, MODEL.economy, MODEL.ai, SEED_ECONOMY, SEED_AI
+      );
+      _lastGeneratedText = buildConstantsPatchedOutput(text, proposed, changed);
+      showOutputText(_lastGeneratedText, 'patch-constants', null, pasteText);
+    } catch(e){
+      showOutputError('Patch error: ' + e.message);
+    }
+  } else {
+    // Change-list
+    const econChanges = {};
+    const aiChangesLive = {};
+    const aiChangesProposed = {};
+
+    Object.entries(MODEL.economy).forEach(([k,v]) => {
+      if(!deepEq(v, SEED_ECONOMY[k])) econChanges[k] = v;
+    });
+    Object.entries(MODEL.ai).forEach(([k,v]) => {
+      if(DISPLAY_ONLY_KEYS.has(k)) return;
+      if(!deepEq(v, SEED_AI[k])){
+        if(PROPOSED_AI_KEYS.has(k)) aiChangesProposed[k] = v;
+        else aiChangesLive[k] = v;
+      }
+    });
+
+    const text = generateConstantsChangeList(econChanges, aiChangesLive, aiChangesProposed);
+    _lastGeneratedText = text;
+    showOutputText(text, 'changelist-constants', null, null);
+  }
+}
+
+// Build the final output when in patch mode for constants:
+// = patched text + a trailing block for proposed constants (if any changed)
+function buildConstantsPatchedOutput(patchedText, proposed, changed){
+  if(Object.keys(proposed).length === 0) return patchedText;
+  const propLines = [
+    '',
+    '// ============================================================',
+    '// Proposed (AI refactor branch) — not in current file',
+    '// Add these constants when integrating the AI refactor.',
+    '// ============================================================',
+  ];
+  Object.entries(proposed).forEach(([k,v]) => {
+    propLines.push(k + ' = ' + sqfVal(v) + ';');
+  });
+  return patchedText + '\n' + propLines.join('\n') + '\n';
+}
+
+function showOutputError(msg){
+  epOutputCode.innerHTML = '<span style="color:var(--danger)">Error: ' + escHtml(msg) + '</span>';
+}
+
+function showOutputText(text, kind, faction, origText){
+  // Syntax-highlight: if patch mode, diff against origText to mark changed lines
+  if((kind === 'patch' || kind === 'patch-constants') && origText){
+    const origLines = origText.split('\n');
+    const newLines = text.split('\n');
+    const html = newLines.map((line, i) => {
+      const esc = escHtml(line);
+      if(i >= origLines.length || line !== origLines[i]){
+        return '<span class="hi-changed">' + esc + '</span>';
+      }
+      return esc;
+    }).join('\n');
+    epOutputCode.innerHTML = html;
+  } else if(kind === 'patch-constants' && origText){
+    // Same as above but also mark the proposed block
+    const origLines = origText.split('\n');
+    const newLines = text.split('\n');
+    let inProposed = false;
+    const html = newLines.map((line, i) => {
+      const esc = escHtml(line);
+      if(line.includes('Proposed (AI refactor branch)')) inProposed = true;
+      if(inProposed) return '<span class="hi-proposed">' + esc + '</span>';
+      if(i >= origLines.length || line !== origLines[i]){
+        return '<span class="hi-changed">' + esc + '</span>';
+      }
+      return esc;
+    }).join('\n');
+    epOutputCode.innerHTML = html;
+  } else {
+    // Change-list or full regen — just highlight proposed block
+    let inProposed = false;
+    const html = text.split('\n').map(line => {
+      const esc = escHtml(line);
+      if(line.includes('Proposed (AI refactor branch)')) inProposed = true;
+      if(inProposed) return '<span class="hi-proposed">' + esc + '</span>';
+      return esc;
+    }).join('\n');
+    epOutputCode.innerHTML = html;
+  }
+}
+
+// Copy button
+document.getElementById('ep-btn-copy').addEventListener('click', () => {
+  if(!_lastGeneratedText){ alert('Generate first.'); return; }
+  navigator.clipboard.writeText(_lastGeneratedText).then(() => {
+    const btn = document.getElementById('ep-btn-copy');
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = _lastGeneratedText;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
+});
+
+// Download button
+document.getElementById('ep-btn-download').addEventListener('click', () => {
+  if(!_lastGeneratedText){ alert('Generate first.'); return; }
+  const blob = new Blob([_lastGeneratedText], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = _lastDownloadName;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// Expose export functions for Playwright testing
+window.EXPORT = {
+  openUpgrades: () => openExportDrawer('upgrades'),
+  openConstants: () => openExportDrawer('constants'),
+  setSource: (text) => { _rawPasteText = text; epPasteArea.value = text; updateParseStatus(); },
+  generate: generateExport,
+  getOutput: () => _lastGeneratedText,
+  patchMode: (m) => { epPatchMode = m; },
+  getSeeds: () => ({ economy: SEED_ECONOMY, ai: SEED_AI, upgrades: SEED_UPGRADES }),
+  captureSeeds,
+  parseUpgradesSpans,
+  parseConstantSpans,
+  patchUpgradesFile,
+  patchConstantsFile,
+  deepEq,
+};
 
 </script>
 </body>
