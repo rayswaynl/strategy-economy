@@ -220,6 +220,58 @@ input[type=number].array-el{width:64px;flex-shrink:0}
 .stat-row .sv{font-size:12px;color:var(--bone);font-weight:600}
 .badge-olive{display:inline-block;font-size:9px;background:var(--olive);color:var(--chalk);padding:1px 6px;border-radius:10px;margin-left:6px}
 
+/* ---- AI Commander panel ---- */
+.ai-panel-layout{display:grid;grid-template-columns:1fr 340px;min-height:100%;gap:0}
+.ai-panel-main{overflow:auto;padding:20px 24px}
+.ai-panel-sidebar{background:#101317;border-left:1px solid var(--line);overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+
+.ai-group-card{background:var(--steel);border:1px solid var(--line);border-radius:8px;margin-bottom:18px;overflow:hidden}
+.ai-group-card .ai-group-head{padding:9px 14px;background:var(--gunmetal);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.ai-group-card .ai-group-head h3{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--bone)}
+.ai-group-card .ai-group-head .ai-g-count{font-size:10px;color:#636d78;font-family:'JetBrains Mono',monospace;margin-left:auto}
+.ai-group-body{padding:14px 14px 10px}
+
+/* Read-only display fields */
+.field-readonly input,.field-readonly select{background:#0d1014;color:#9aa3ad;cursor:not-allowed;border-color:#2a2f36}
+.field-readonly label{color:#636d78}
+.readonly-note{font-size:9px;font-family:'JetBrains Mono',monospace;color:#D9763C;display:block;margin-top:2px;font-style:italic;text-transform:none;letter-spacing:0}
+
+/* Shared-array badge */
+.shared-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-family:'JetBrains Mono',monospace;background:#1a2210;color:#8abf5a;border:1px solid #3a5c1a;border-radius:10px;padding:1px 7px;margin-left:6px;cursor:pointer;vertical-align:middle}
+.shared-badge:hover{border-color:var(--orange);color:var(--orange)}
+
+/* Seed preview widget */
+.seed-preview{background:var(--steel);border:1px solid var(--orange);border-radius:8px;padding:14px;margin-bottom:16px}
+.seed-preview h3{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--orange);margin-bottom:10px;font-family:Oswald,sans-serif}
+.seed-preview .seed-multiplier-row{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.seed-preview .seed-multiplier-row label{font-size:11px;color:#9aa3ad;white-space:nowrap;font-family:'JetBrains Mono',monospace}
+.seed-preview .seed-multiplier-row input{flex:1;min-width:60px}
+.seed-preview .seed-note{font-size:9px;color:#636d78;font-style:italic;margin-bottom:10px}
+.seed-preview .seed-row{display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:var(--gunmetal);border-radius:4px;margin-bottom:4px}
+.seed-preview .seed-row .seed-side{font-family:'JetBrains Mono',monospace;font-size:10px;color:#9aa3ad}
+.seed-preview .seed-row .seed-val{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--orange);font-weight:600}
+
+/* AI queue panel-C mirror */
+.ai-queue-mirror{background:var(--steel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.ai-queue-mirror .aqm-head{padding:9px 14px;background:var(--gunmetal);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.ai-queue-mirror .aqm-head h3{font-family:Oswald,sans-serif;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--bone)}
+.ai-queue-mirror .aqm-head .aqm-faction-sel{margin-left:auto;font-size:11px;background:var(--gunmetal);border:1px solid var(--line);color:var(--bone);border-radius:4px;padding:2px 6px;font-family:'JetBrains Mono',monospace;cursor:pointer}
+.ai-queue-mirror .aqm-body{padding:12px 14px}
+.ai-queue-mirror .aqm-count{font-size:10px;color:#636d78;font-family:'JetBrains Mono',monospace;margin-bottom:8px}
+.aqm-item{display:flex;align-items:center;gap:6px;background:#0d1014;border:1px solid var(--line);border-radius:5px;padding:5px 8px;margin-bottom:4px}
+.aqm-item .aqm-pos{font-family:'JetBrains Mono',monospace;font-size:9px;color:#636d78;width:20px;text-align:right;flex-shrink:0}
+.aqm-item .aqm-name{font-size:11px;color:var(--bone);flex:1;font-family:'JetBrains Mono',monospace}
+.aqm-item .aqm-lvl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--orange);padding:1px 6px;background:#1a1208;border:1px solid #5c3010;border-radius:8px}
+.aqm-item .aqm-hint{font-family:'JetBrains Mono',monospace;font-size:9px;color:#8abf5a;margin-left:auto;white-space:nowrap}
+.aqm-item .aqm-btns{display:flex;gap:2px}
+.aqm-item .aqm-btns button{font-size:10px;padding:2px 5px;cursor:pointer;background:var(--steel2);border:1px solid var(--line);border-radius:3px;color:#9aa3ad}
+.aqm-item .aqm-btns button:hover{border-color:var(--orange);color:var(--orange)}
+.aqm-add-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.aqm-add-row select{width:auto;flex:1;min-width:120px;font-size:11px;padding:5px 7px}
+.aqm-add-row input[type=number]{width:60px;font-size:11px;padding:5px 7px}
+.aqm-add-row button{white-space:nowrap}
+.aqm-empty{font-size:11px;color:#636d78;font-style:italic;text-align:center;padding:16px 0}
+
 /* ---- Scrollbar ---- */
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-thumb{background:var(--steel2);border-radius:4px}
@@ -394,21 +446,56 @@ button.sec:hover{border-color:var(--orange);color:var(--orange)}
       </div>
     </div>
 
-    <!-- === AI Commander placeholder === -->
+    <!-- === AI Commander panel === -->
     <div class="panel" id="panel-ai">
-      <div class="placeholder">
-        <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-          <circle cx="28" cy="20" r="10" fill="#343b44" stroke="#39414b" stroke-width="1.5"/>
-          <circle cx="28" cy="20" r="4" fill="#5C6536"/>
-          <path d="M14 42 Q28 32 42 42" stroke="#39414b" stroke-width="1.5" fill="none"/>
-          <circle cx="14" cy="42" r="4" fill="#343b44" stroke="#39414b" stroke-width="1.5"/>
-          <circle cx="42" cy="42" r="4" fill="#343b44" stroke="#39414b" stroke-width="1.5"/>
-          <line x1="28" y1="30" x2="28" y2="36" stroke="#39414b" stroke-width="1.5"/>
-          <line x1="28" y1="36" x2="14" y2="42" stroke="#D9763C" stroke-width="1.5"/>
-          <line x1="28" y1="36" x2="42" y2="42" stroke="#D9763C" stroke-width="1.5"/>
-        </svg>
-        <h2>AI COMMANDER</h2>
-        <p>AI constants, spearhead params, bootstrap &amp; cross-links — coming in next build (Task 4)</p>
+      <div class="ai-panel-layout">
+
+        <!-- Main: AI constant groups -->
+        <div class="ai-panel-main" id="ai-panel-main">
+          <!-- Rendered by JS -->
+        </div>
+
+        <!-- Sidebar: seed preview + AI queue mirror -->
+        <div class="ai-panel-sidebar">
+
+          <!-- Fund seed preview -->
+          <div class="seed-preview" id="seed-preview">
+            <h3>AI Fund Seed Preview</h3>
+            <div class="seed-note">Lives in Init_Server.sqf · seed = round(FUNDS_START × multiplier)</div>
+            <div class="seed-multiplier-row">
+              <label>Multiplier</label>
+              <input type="number" id="seed-multiplier" value="1.5" min="0.1" max="10" step="0.1">
+            </div>
+            <div id="seed-rows"><!-- per-side rows rendered by JS --></div>
+          </div>
+
+          <!-- AI queue mirror (same data as Panel A) -->
+          <div class="ai-queue-mirror">
+            <div class="aqm-head">
+              <h3>AI Upgrade Queue</h3>
+              <select id="ai-panel-faction-sel" class="aqm-faction-sel" title="Synced with Tech-Tree faction"></select>
+            </div>
+            <div class="aqm-body">
+              <div class="aqm-count" id="aqm-count">0 steps</div>
+              <div id="aqm-list"><!-- rendered by JS --></div>
+              <div class="aqm-add-row">
+                <select id="aqm-add-sel"></select>
+                <input type="number" id="aqm-add-level" min="1" value="1" title="Level">
+                <button class="primary" id="aqm-add-btn">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Info card -->
+          <div class="info-card">
+            <h4>Cross-Panel Links</h4>
+            <p>
+              The AI queue here is the <em>same data object</em> as the Tech-Tree queue — edits in either panel reflect in both.<br><br>
+              Arrays marked <span class="shared-badge">shared</span> live in the Economy panel — click the badge to scroll there.
+            </p>
+          </div>
+
+        </div>
       </div>
     </div>
 
@@ -860,6 +947,7 @@ async function loadData(){
     buildEconomyPanel(MODEL.economy);
     updateIncomePreview();
     buildTechPanel();
+    buildAiPanelUI();
 
   } catch(err){
     console.error('Failed to load data:', err);
@@ -1343,7 +1431,7 @@ function buildPrereqEditor(fd, upgradeIdx, maxLevel){
   return section;
 }
 
-// ---- AI Order editor ----
+// ---- AI Order editor (Panel A sidebar) ----
 
 function renderAiOrder(fd){
   const list = document.getElementById('ai-order-list');
@@ -1378,6 +1466,7 @@ function renderAiOrder(fd){
       fd.ai_order[pos-1] = fd.ai_order[pos];
       fd.ai_order[pos] = tmp;
       renderAiOrder(fd);
+      renderAiPanelQueue(); // keep Panel C in sync
     });
 
     // Down
@@ -1390,6 +1479,7 @@ function renderAiOrder(fd){
       fd.ai_order[pos+1] = fd.ai_order[pos];
       fd.ai_order[pos] = tmp;
       renderAiOrder(fd);
+      renderAiPanelQueue();
     });
 
     // Remove
@@ -1401,6 +1491,7 @@ function renderAiOrder(fd){
       fd.ai_order.splice(pos, 1);
       renderAiOrder(fd);
       updateTechStats(fd);
+      renderAiPanelQueue();
     });
 
     btns.appendChild(upBtn);
@@ -1417,6 +1508,621 @@ function renderAiOrder(fd){
   document.getElementById('ai-order-count').textContent = fd.ai_order.length + ' steps';
   updateTechStats(fd);
 }
+
+// ============================================================
+// AI Commander panel (Panel C)
+// ============================================================
+
+// Groups for AI constants
+const AI_GROUPS = [
+  {
+    id: 'command',
+    label: 'Command',
+    keys: [
+      'WFBE_C_AI_COMMANDER_ENABLED',
+      'WFBE_C_AI_COMMANDER_LOCK',
+      'WFBE_C_AI_COMMANDER_BUILD_GRACE',
+      'WFBE_C_AI_MAX',
+      'WFBE_C_AI_DELEGATION',
+      'WFBE_C_AI_DELEGATION_FPS_MIN',
+      'WFBE_C_AI_DELEGATION_GROUPS_MAX',
+      'WFBE_C_AI_TEAMS_ENABLED',
+      'WFBE_C_AI_TEAMS_JIP_PRESERVE',
+    ]
+  },
+  {
+    id: 'intervals',
+    label: 'Intervals',
+    keys: [
+      'WFBE_C_AI_COMMANDER_STRATEGY_INTERVAL',
+      'WFBE_C_AI_COMMANDER_BASE_INTERVAL',
+      'WFBE_C_AI_COMMANDER_TEAMS_INTERVAL',
+      'WFBE_C_AI_COMMANDER_MOVE_INTERVALS',
+      'WFBE_C_AI_PATROL_RANGE',
+      'WFBE_C_AI_TOWN_ATTACK_HOPS_WP',
+      'WFBE_C_AI_COMMANDER_SUPPLY_TRUCKS_MAX',
+    ]
+  },
+  {
+    id: 'spearhead',
+    label: 'Spearhead',
+    keys: [
+      'WFBE_C_AICOM_FRONTIER_RADIUS',
+      'WFBE_C_AICOM_DISTANCE_DIVISOR',
+      'WFBE_C_AICOM_HQ_PULL_DIVISOR',
+      'WFBE_C_AICOM_FAR_PENALTY',
+      'WFBE_C_AICOM_SPEARHEAD_TOWNS_MAX',
+    ]
+  },
+  {
+    id: 'economy_of_war',
+    label: 'Economy of War',
+    keys: [
+      'WFBE_C_AICOM_BOOTSTRAP_MAXTIME',
+      'WFBE_C_AICOM_BOOTSTRAP_FUNDS',
+      'WFBE_C_AICOM_BOOTSTRAP_SUPPLY',
+      'WFBE_C_AI_COMMANDER_FUNDS_PER_EXTRA_TEAM',
+      'WFBE_C_AI_COMMANDER_TEAMS_TARGET',
+      'WFBE_C_AI_COMMANDER_RELIEF_MAX',
+    ]
+  },
+  {
+    id: 'artillery',
+    label: 'Artillery',
+    keys: [
+      'WFBE_C_AI_COMMANDER_ARTILLERY',
+    ]
+  },
+  {
+    id: 'hardcoded',
+    label: 'Strategy Ratios (hardcoded)',
+    keys: [
+      '_displayOnly_HQ_HUNT_RATIO_ATTACK',
+      '_displayOnly_HQ_HUNT_RATIO_RETREAT',
+      '_displayOnly_HQ_HUNT_RATIO_FLANK',
+    ],
+    displayOnly: true
+  }
+];
+
+// Human-readable labels for AI constants
+const AI_KEY_LABELS = {
+  'WFBE_C_AI_COMMANDER_ENABLED':            'Commander Enabled',
+  'WFBE_C_AI_COMMANDER_LOCK':               'Lock (disable after N ticks)',
+  'WFBE_C_AI_COMMANDER_BUILD_GRACE':        'Build Grace Period (s)',
+  'WFBE_C_AI_MAX':                          'Max AI Units',
+  'WFBE_C_AI_DELEGATION':                   'Delegation Enabled',
+  'WFBE_C_AI_DELEGATION_FPS_MIN':           'Delegation Min FPS',
+  'WFBE_C_AI_DELEGATION_GROUPS_MAX':        'Delegation Max Groups',
+  'WFBE_C_AI_TEAMS_ENABLED':               'Teams Enabled',
+  'WFBE_C_AI_TEAMS_JIP_PRESERVE':          'Teams JIP Preserve',
+  'WFBE_C_AI_COMMANDER_STRATEGY_INTERVAL':  'Strategy Interval (s)',
+  'WFBE_C_AI_COMMANDER_BASE_INTERVAL':      'Base Interval (s)',
+  'WFBE_C_AI_COMMANDER_TEAMS_INTERVAL':     'Teams Interval (s)',
+  'WFBE_C_AI_COMMANDER_MOVE_INTERVALS':     'Move Interval (s)',
+  'WFBE_C_AI_PATROL_RANGE':                 'Patrol Range (m)',
+  'WFBE_C_AI_TOWN_ATTACK_HOPS_WP':          'Town Attack Waypoint Hops',
+  'WFBE_C_AI_COMMANDER_SUPPLY_TRUCKS_MAX':  'Max Supply Trucks',
+  'WFBE_C_AICOM_FRONTIER_RADIUS':           'Frontier Radius (m)',
+  'WFBE_C_AICOM_DISTANCE_DIVISOR':          'Distance Divisor',
+  'WFBE_C_AICOM_HQ_PULL_DIVISOR':           'HQ Pull Divisor',
+  'WFBE_C_AICOM_FAR_PENALTY':               'Far Penalty',
+  'WFBE_C_AICOM_SPEARHEAD_TOWNS_MAX':       'Spearhead Towns Max',
+  'WFBE_C_AICOM_BOOTSTRAP_MAXTIME':         'Bootstrap Max Time (s)',
+  'WFBE_C_AICOM_BOOTSTRAP_FUNDS':           'Bootstrap Funds',
+  'WFBE_C_AICOM_BOOTSTRAP_SUPPLY':          'Bootstrap Supply',
+  'WFBE_C_AI_COMMANDER_FUNDS_PER_EXTRA_TEAM':'Funds per Extra Team',
+  'WFBE_C_AI_COMMANDER_TEAMS_TARGET':       'Teams Target',
+  'WFBE_C_AI_COMMANDER_RELIEF_MAX':         'Relief Max',
+  'WFBE_C_AI_COMMANDER_ARTILLERY':          'Artillery Enable',
+  '_displayOnly_HQ_HUNT_RATIO_ATTACK':      'HQ Hunt Ratio — Attack',
+  '_displayOnly_HQ_HUNT_RATIO_RETREAT':     'HQ Hunt Ratio — Retreat',
+  '_displayOnly_HQ_HUNT_RATIO_FLANK':       'HQ Hunt Ratio — Flank',
+};
+
+// Keys that use a select in AI panel
+const AI_SELECT_FIELDS = {
+  'WFBE_C_AI_COMMANDER_ENABLED': [
+    {v:0, l:'0 — Disabled'}, {v:1, l:'1 — Enabled'},
+  ],
+  'WFBE_C_AI_DELEGATION': [
+    {v:0, l:'0 — Disabled'}, {v:1, l:'1 — Enabled'},
+  ],
+  'WFBE_C_AI_TEAMS_ENABLED': [
+    {v:0, l:'0 — Disabled'}, {v:1, l:'1 — Enabled'},
+  ],
+  'WFBE_C_AI_TEAMS_JIP_PRESERVE': [
+    {v:0, l:'0 — No'}, {v:1, l:'1 — Yes'},
+  ],
+  'WFBE_C_AI_COMMANDER_ARTILLERY': [
+    {v:0, l:'0 — Disabled'}, {v:1, l:'1 — Enabled'},
+  ],
+};
+
+// Keys shared with economy (reference, don't duplicate)
+const AI_SHARED_ECONOMY_KEYS = [
+  'WFBE_C_ARTILLERY_INTERVALS',
+  'WFBE_C_RESPAWN_RANGES',
+];
+
+// Keys that have float values
+function aiGetStep(key){
+  if(key.includes('DIVISOR') || key.includes('PENALTY') || key.includes('COEF') || key.startsWith('_displayOnly')) return 0.01;
+  return 1;
+}
+
+function buildAiPanel(aiData){
+  const main = document.getElementById('ai-panel-main');
+  main.innerHTML = '';
+
+  // Collect all keys defined in the data
+  const allDataKeys = new Set(Object.keys(aiData));
+
+  // Render each group
+  AI_GROUPS.forEach(group => {
+    // Only include keys that actually exist in the data for this group
+    const presentKeys = group.keys.filter(k => allDataKeys.has(k));
+    // Always show hardcoded group even if keys come from _displayOnly prefix
+    if(presentKeys.length === 0) return;
+
+    const card = document.createElement('div');
+    card.className = 'ai-group-card';
+    card.id = 'ai-group-' + group.id;
+
+    const head = document.createElement('div');
+    head.className = 'ai-group-head';
+    const h3 = document.createElement('h3');
+    h3.textContent = group.label;
+    const cnt = document.createElement('span');
+    cnt.className = 'ai-g-count';
+    cnt.textContent = presentKeys.length + ' field' + (presentKeys.length !== 1 ? 's' : '');
+    if(group.displayOnly){
+      const note = document.createElement('span');
+      note.style.cssText = 'font-size:9px;color:#D9763C;font-family:JetBrains Mono,monospace;margin-left:8px;font-style:italic';
+      note.textContent = 'hardcoded in AI_Commander.sqf — v2 extract';
+      head.appendChild(h3);
+      head.appendChild(note);
+      head.appendChild(cnt);
+    } else {
+      head.appendChild(h3);
+      head.appendChild(cnt);
+    }
+    card.appendChild(head);
+
+    const body = document.createElement('div');
+    body.className = 'ai-group-body';
+
+    // Use 2-col grid for spearhead + economy-of-war groups
+    const useGrid = (group.id === 'spearhead' || group.id === 'economy_of_war');
+    if(useGrid){
+      const grid = document.createElement('div');
+      grid.className = 'grid2';
+      presentKeys.forEach(k => renderAiField(grid, k, aiData[k], group.displayOnly));
+      body.appendChild(grid);
+    } else {
+      presentKeys.forEach(k => renderAiField(body, k, aiData[k], group.displayOnly));
+    }
+
+    card.appendChild(body);
+    main.appendChild(card);
+  });
+
+  // Shared arrays section — ARTILLERY_INTERVALS and RESPAWN_RANGES live in economy
+  const sharedCard = document.createElement('div');
+  sharedCard.className = 'ai-group-card';
+  sharedCard.id = 'ai-group-shared';
+  const sharedHead = document.createElement('div');
+  sharedHead.className = 'ai-group-head';
+  const sharedH3 = document.createElement('h3');
+  sharedH3.textContent = 'Shared Arrays';
+  const sharedCnt = document.createElement('span');
+  sharedCnt.className = 'ai-g-count';
+  sharedCnt.textContent = '2 fields · referenced from Economy';
+  sharedHead.appendChild(sharedH3);
+  sharedHead.appendChild(sharedCnt);
+  sharedCard.appendChild(sharedHead);
+
+  const sharedBody = document.createElement('div');
+  sharedBody.className = 'ai-group-body';
+  AI_SHARED_ECONOMY_KEYS.forEach(k => {
+    if(k in MODEL.economy){
+      renderSharedArrayField(sharedBody, k, MODEL.economy[k]);
+    }
+  });
+  sharedCard.appendChild(sharedBody);
+  main.appendChild(sharedCard);
+
+  // Also render any AI keys not covered by any group (catch-all)
+  const coveredKeys = new Set();
+  AI_GROUPS.forEach(g => g.keys.forEach(k => coveredKeys.add(k)));
+  const uncoveredKeys = Object.keys(aiData).filter(k => !coveredKeys.has(k));
+  if(uncoveredKeys.length > 0){
+    const otherCard = document.createElement('div');
+    otherCard.className = 'ai-group-card';
+    const otherHead = document.createElement('div');
+    otherHead.className = 'ai-group-head';
+    const otherH3 = document.createElement('h3');
+    otherH3.textContent = 'Other';
+    const otherCnt = document.createElement('span');
+    otherCnt.className = 'ai-g-count';
+    otherCnt.textContent = uncoveredKeys.length + ' fields';
+    otherHead.appendChild(otherH3);
+    otherHead.appendChild(otherCnt);
+    otherCard.appendChild(otherHead);
+    const otherBody = document.createElement('div');
+    otherBody.className = 'ai-group-body';
+    uncoveredKeys.forEach(k => renderAiField(otherBody, k, aiData[k], false));
+    otherCard.appendChild(otherBody);
+    main.appendChild(otherCard);
+  }
+}
+
+function renderAiField(container, key, val, readOnly){
+  const div = document.createElement('div');
+  div.className = 'field' + (readOnly ? ' field-readonly' : '');
+  div.dataset.aiKey = key;
+
+  const lbl = document.createElement('label');
+  const friendly = AI_KEY_LABELS[key] || key;
+  lbl.textContent = friendly;
+  const keySpan = document.createElement('span');
+  keySpan.className = 'key';
+  keySpan.textContent = key;
+  lbl.appendChild(keySpan);
+  if(readOnly){
+    const note = document.createElement('span');
+    note.className = 'readonly-note';
+    note.textContent = 'hardcoded in AI_Commander.sqf — read-only (v2 extract)';
+    lbl.appendChild(note);
+  }
+  div.appendChild(lbl);
+
+  if(AI_SELECT_FIELDS[key] && !readOnly){
+    const sel = document.createElement('select');
+    AI_SELECT_FIELDS[key].forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.v;
+      opt.textContent = o.l;
+      if(o.v == val) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', () => {
+      MODEL.ai[key] = parseInt(sel.value);
+    });
+    div.appendChild(sel);
+  } else if(Array.isArray(val)){
+    // Shouldn't happen for AI keys but handle gracefully
+    const row = document.createElement('div');
+    row.className = 'array-row';
+    val.forEach((v, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'array-cell';
+      const inp = document.createElement('input');
+      inp.type = 'number';
+      inp.value = v;
+      inp.step = 1;
+      inp.min = 0;
+      inp.classList.add('array-el');
+      if(readOnly) inp.readOnly = true;
+      else inp.addEventListener('change', () => {
+        const n = parseFloat(inp.value);
+        if(!isNaN(n)) MODEL.ai[key][i] = n;
+      });
+      const idx = document.createElement('div');
+      idx.className = 'array-idx';
+      idx.textContent = '[' + i + ']';
+      cell.appendChild(inp);
+      cell.appendChild(idx);
+      row.appendChild(cell);
+    });
+    div.appendChild(row);
+  } else {
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.value = val;
+    inp.step = aiGetStep(key);
+    inp.min = 0;
+    if(readOnly){
+      inp.readOnly = true;
+    } else {
+      inp.addEventListener('change', () => {
+        const n = parseFloat(inp.value);
+        if(!isNaN(n)) MODEL.ai[key] = n;
+      });
+    }
+    div.appendChild(inp);
+  }
+
+  container.appendChild(div);
+}
+
+// Render a shared-economy array field with a badge + scroll link
+function renderSharedArrayField(container, key, val){
+  const div = document.createElement('div');
+  div.className = 'field';
+  div.dataset.sharedKey = key;
+
+  const lbl = document.createElement('label');
+  // Friendly name from economy labels
+  const econLabels = {
+    'WFBE_C_ARTILLERY_INTERVALS': 'Artillery Intervals (s)',
+    'WFBE_C_RESPAWN_RANGES': 'Respawn Ranges (m)',
+  };
+  const labelSpan = document.createElement('span');
+  labelSpan.style.cssText = 'display:flex;align-items:center;gap:0;flex-wrap:wrap';
+  labelSpan.textContent = econLabels[key] || key;
+
+  const badge = document.createElement('span');
+  badge.className = 'shared-badge';
+  badge.textContent = 'shared with Economy';
+  badge.title = 'Click to jump to Economy panel';
+  badge.addEventListener('click', () => {
+    // Switch to Economy tab and scroll to field
+    document.querySelector('[data-tab="economy"]').click();
+    setTimeout(() => {
+      const econField = document.querySelector('[data-econ-key="' + key + '"]');
+      if(econField) econField.scrollIntoView({behavior:'smooth', block:'center'});
+    }, 80);
+  });
+  labelSpan.appendChild(badge);
+  lbl.appendChild(labelSpan);
+
+  const keySpan = document.createElement('span');
+  keySpan.className = 'key';
+  keySpan.textContent = key + '  →  edit in Economy panel';
+  lbl.appendChild(keySpan);
+  div.appendChild(lbl);
+
+  // Show as readonly array reflecting MODEL.economy[key]
+  const row = document.createElement('div');
+  row.className = 'array-row';
+  val.forEach((v, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'array-cell';
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.value = v;
+    inp.classList.add('array-el');
+    inp.readOnly = true;
+    inp.style.cssText = 'background:#0d1014;color:#9aa3ad;cursor:not-allowed';
+    const idx = document.createElement('div');
+    idx.className = 'array-idx';
+    idx.textContent = '[' + i + ']';
+    cell.appendChild(inp);
+    cell.appendChild(idx);
+    row.appendChild(cell);
+  });
+  div.appendChild(row);
+
+  container.appendChild(div);
+}
+
+// ---- Seed preview ----
+
+function updateSeedPreview(){
+  const mult = parseFloat(document.getElementById('seed-multiplier').value) || 1.5;
+  const sides = ['WEST','EAST','GUER'];
+  const labels = {WEST:'West (BLUFOR)', EAST:'East (OPFOR)', GUER:'Guerrilla'};
+  const container = document.getElementById('seed-rows');
+  container.innerHTML = '';
+
+  sides.forEach(side => {
+    const fundsKey = 'WFBE_C_ECONOMY_FUNDS_START_' + side;
+    const startFunds = MODEL.economy[fundsKey];
+    const row = document.createElement('div');
+    row.className = 'seed-row';
+    const sideEl = document.createElement('span');
+    sideEl.className = 'seed-side';
+    sideEl.textContent = labels[side];
+    const valEl = document.createElement('span');
+    valEl.className = 'seed-val';
+    if(startFunds !== undefined){
+      valEl.textContent = '₣' + Math.round(startFunds * mult).toLocaleString();
+    } else {
+      valEl.textContent = '—';
+      valEl.style.color = '#636d78';
+    }
+    row.appendChild(sideEl);
+    row.appendChild(valEl);
+    container.appendChild(row);
+  });
+}
+
+document.getElementById('seed-multiplier').addEventListener('input', updateSeedPreview);
+
+// ---- Affordability hint helper ----
+
+function affordabilityHint(upgradeId, level){
+  const fd = MODEL.upgrades.factions && MODEL.upgrades.factions[techFaction];
+  if(!fd) return null;
+  const costsForUpgrade = getUpgradeEntry(fd.costs, upgradeId);
+  if(!costsForUpgrade) return null;
+  const levelEntry = costsForUpgrade[level - 1];
+  if(!levelEntry) return null;
+  const funds = levelEntry[0];
+  if(funds === undefined || funds === null) return null;
+
+  // Sample income = round(100 * INCOME_COEF) — same default as Panel B preview
+  const sampleSV = 100;
+  const coef = MODEL.economy['WFBE_C_ECONOMY_INCOME_COEF'] || 1;
+  const incomePerTick = Math.round(sampleSV * coef);
+  if(incomePerTick <= 0) return { funds };
+
+  const ticks = Math.ceil(funds / incomePerTick);
+  return { funds, ticks };
+}
+
+// ---- AI Panel queue mirror (Panel C sidebar) ----
+
+function renderAiPanelQueue(){
+  const fd = MODEL.upgrades.factions && MODEL.upgrades.factions[techFaction];
+  const list = document.getElementById('aqm-list');
+  const countEl = document.getElementById('aqm-count');
+  if(!fd || !list) return;
+
+  list.innerHTML = '';
+  countEl.textContent = fd.ai_order.length + ' steps';
+
+  if(fd.ai_order.length === 0){
+    const empty = document.createElement('div');
+    empty.className = 'aqm-empty';
+    empty.textContent = 'No AI upgrade queue entries. Add below.';
+    list.appendChild(empty);
+    return;
+  }
+
+  fd.ai_order.forEach(([upgradeId, level], pos) => {
+    const item = document.createElement('div');
+    item.className = 'aqm-item';
+
+    const posEl = document.createElement('span');
+    posEl.className = 'aqm-pos';
+    posEl.textContent = (pos+1) + '.';
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'aqm-name';
+    nameEl.textContent = upgradeName(upgradeId);
+
+    const lvlEl = document.createElement('span');
+    lvlEl.className = 'aqm-lvl';
+    lvlEl.textContent = 'L' + level;
+
+    // Affordability hint
+    const hint = affordabilityHint(upgradeId, level);
+    const hintEl = document.createElement('span');
+    hintEl.className = 'aqm-hint';
+    if(hint){
+      if(hint.ticks !== undefined){
+        hintEl.textContent = '₣' + hint.funds + ' (~' + hint.ticks + ' ticks)';
+      } else {
+        hintEl.textContent = '₣' + hint.funds;
+      }
+    }
+
+    const btns = document.createElement('div');
+    btns.className = 'aqm-btns';
+
+    const upBtn = document.createElement('button');
+    upBtn.textContent = '▲';
+    upBtn.title = 'Move up';
+    upBtn.disabled = pos === 0;
+    upBtn.addEventListener('click', () => {
+      const tmp = fd.ai_order[pos-1];
+      fd.ai_order[pos-1] = fd.ai_order[pos];
+      fd.ai_order[pos] = tmp;
+      renderAiPanelQueue();
+      renderAiOrder(fd); // keep Panel A in sync
+    });
+
+    const dnBtn = document.createElement('button');
+    dnBtn.textContent = '▼';
+    dnBtn.title = 'Move down';
+    dnBtn.disabled = pos === fd.ai_order.length - 1;
+    dnBtn.addEventListener('click', () => {
+      const tmp = fd.ai_order[pos+1];
+      fd.ai_order[pos+1] = fd.ai_order[pos];
+      fd.ai_order[pos] = tmp;
+      renderAiPanelQueue();
+      renderAiOrder(fd);
+    });
+
+    const rmBtn = document.createElement('button');
+    rmBtn.textContent = '✕';
+    rmBtn.title = 'Remove';
+    rmBtn.style.color = '#c06060';
+    rmBtn.addEventListener('click', () => {
+      fd.ai_order.splice(pos, 1);
+      renderAiPanelQueue();
+      renderAiOrder(fd);
+      updateTechStats(fd);
+    });
+
+    btns.appendChild(upBtn);
+    btns.appendChild(dnBtn);
+    btns.appendChild(rmBtn);
+
+    item.appendChild(posEl);
+    item.appendChild(nameEl);
+    item.appendChild(lvlEl);
+    item.appendChild(hintEl);
+    item.appendChild(btns);
+    list.appendChild(item);
+  });
+}
+
+// ---- Build full AI panel ----
+
+function buildAiPanelUI(){
+  buildAiPanel(MODEL.ai);
+  updateSeedPreview();
+
+  // Populate AI panel faction selector (synced with techFaction)
+  const factionNames = Object.keys(MODEL.upgrades.factions || {});
+  const aqmSel = document.getElementById('ai-panel-faction-sel');
+  aqmSel.innerHTML = '';
+  factionNames.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f;
+    opt.textContent = f;
+    if(f === techFaction) opt.selected = true;
+    aqmSel.appendChild(opt);
+  });
+  aqmSel.addEventListener('change', () => {
+    techFaction = aqmSel.value;
+    // Also sync Panel A faction selector
+    const techSel = document.getElementById('tech-faction-sel');
+    if(techSel) techSel.value = techFaction;
+    renderTechFaction();
+    renderAiPanelQueue();
+  });
+
+  // Populate add-upgrade selector in Panel C
+  const aqmAddSel = document.getElementById('aqm-add-sel');
+  aqmAddSel.innerHTML = '';
+  ALL_UPGRADES.forEach(idx => {
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = idx + ' — ' + upgradeName(idx);
+    aqmAddSel.appendChild(opt);
+  });
+
+  document.getElementById('aqm-add-btn').addEventListener('click', () => {
+    const fd = MODEL.upgrades.factions[techFaction];
+    if(!fd) return;
+    const upgradeId = parseInt(document.getElementById('aqm-add-sel').value);
+    const level = parseInt(document.getElementById('aqm-add-level').value) || 1;
+    fd.ai_order.push([upgradeId, level]);
+    renderAiPanelQueue();
+    renderAiOrder(fd);
+    updateTechStats(fd);
+  });
+
+  renderAiPanelQueue();
+}
+
+// Hook: when Panel A's faction changes, also update the AI Panel faction selector + queue
+const _origRenderTechFaction = renderTechFaction;
+// We patch renderAiOrder calls in Panel A to also refresh Panel C via the renderAiPanelQueue calls already added above.
+
+// Also patch the Tech-Tree faction selector change to sync ai-panel-faction-sel
+document.getElementById('tech-faction-sel').addEventListener('change', () => {
+  const aqmSel = document.getElementById('ai-panel-faction-sel');
+  if(aqmSel) aqmSel.value = techFaction;
+  renderAiPanelQueue();
+});
+
+// Patch economy FUNDS_START inputs to also update seed preview
+// We do this by observing changes on any input[data-econ-key starts with FUNDS_START]
+// Using a MutationObserver + delegated event on econ-main
+document.getElementById('econ-main').addEventListener('change', (e) => {
+  const field = e.target.closest('[data-econ-key]');
+  if(field){
+    const key = field.dataset.econKey;
+    if(key && key.startsWith('WFBE_C_ECONOMY_FUNDS_START_')){
+      updateSeedPreview();
+    }
+  }
+});
 
 </script>
 </body>
