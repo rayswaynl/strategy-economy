@@ -63,6 +63,101 @@ h1,h2,h3{font-family:Oswald,Inter,sans-serif;font-weight:600;letter-spacing:.5px
 .placeholder h2{font-size:22px;color:#4a535c;letter-spacing:2px}
 .placeholder p{font-size:13px}
 
+/* ---- Tech-Tree panel ---- */
+.tech-layout{display:grid;grid-template-columns:1fr 300px;min-height:100%;gap:0}
+.tech-main{overflow:auto;padding:20px 24px}
+.tech-sidebar{background:#101317;border-left:1px solid var(--line);overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+
+.tech-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.tech-toolbar label{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#9aa3ad}
+.tech-toolbar select{width:auto;min-width:140px}
+.tech-toolbar .faction-badge{font-family:'JetBrains Mono',monospace;font-size:10px;color:#636d78;border:1px solid var(--line);border-radius:10px;padding:3px 9px;background:#0d1014}
+
+/* Upgrade rows */
+.upgrade-row{background:var(--steel);border:1px solid var(--line);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.upgrade-row.unconfigured{opacity:.5}
+.upgrade-head{
+  display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;
+  background:var(--gunmetal);border-bottom:1px solid transparent;user-select:none;
+  transition:border-color .15s
+}
+.upgrade-row.open .upgrade-head{border-bottom-color:var(--line)}
+.upgrade-head:hover{background:#1a1f26}
+.upgrade-head .u-id{font-family:'JetBrains Mono',monospace;font-size:10px;color:#636d78;width:22px;flex-shrink:0}
+.upgrade-head .u-name{font-family:Oswald,sans-serif;font-size:13px;letter-spacing:.5px;color:var(--bone);flex:1;text-transform:uppercase}
+.upgrade-head .u-badge{font-size:9px;border-radius:10px;padding:2px 7px;font-family:'JetBrains Mono',monospace}
+.u-badge.enabled{background:#1e3a1e;color:#6abf6a;border:1px solid #2e5e2e}
+.u-badge.disabled{background:#3a1e1e;color:#bf6a6a;border:1px solid #5e2e2e}
+.u-badge.expression{background:#2e2a10;color:#c8a72a;border:1px solid #5e4e10}
+.u-badge.uncfg{background:#1a1f26;color:#636d78;border:1px solid var(--line)}
+.upgrade-head .u-lvlcount{font-family:'JetBrains Mono',monospace;font-size:10px;color:#636d78;white-space:nowrap}
+.upgrade-head .u-cost-hint{font-family:'JetBrains Mono',monospace;font-size:10px;color:#9aa3ad;margin-left:auto;white-space:nowrap}
+.upgrade-head .u-chevron{font-size:10px;color:#636d78;transition:transform .15s;margin-left:6px}
+.upgrade-row.open .u-chevron{transform:rotate(90deg)}
+
+.upgrade-body{padding:14px;display:none;flex-direction:column;gap:16px}
+.upgrade-row.open .upgrade-body{display:flex}
+
+/* Enable toggle row */
+.enable-row{display:flex;align-items:center;gap:10px}
+.enable-row label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#9aa3ad;font-family:'JetBrains Mono',monospace}
+.enable-toggle{display:flex;gap:6px}
+.enable-toggle button{font-size:10px;font-family:'JetBrains Mono',monospace;padding:3px 10px;border-radius:10px;cursor:pointer;border:1px solid var(--line);background:var(--gunmetal);color:#9aa3ad;transition:all .12s}
+.enable-toggle button.active-yes{background:#1e3a1e;color:#6abf6a;border-color:#2e5e2e}
+.enable-toggle button.active-no{background:#3a1e1e;color:#bf6a6a;border-color:#5e2e2e}
+.enable-toggle button.active-expr{background:#2e2a10;color:#c8a72a;border-color:#5e4e10}
+
+/* Per-level grid */
+.level-grid-wrap{}
+.level-grid-head{display:grid;grid-template-columns:40px 1fr 1fr 1fr;gap:6px;margin-bottom:6px}
+.level-grid-head span{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#636d78;font-family:'JetBrains Mono',monospace}
+.level-grid-row{display:grid;grid-template-columns:40px 1fr 1fr 1fr;gap:6px;margin-bottom:6px;align-items:center}
+.level-grid-row .lvl-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:#9aa3ad}
+.level-grid-row input[type=number]{padding:5px 7px;font-size:12px}
+
+/* Prereq chips */
+.prereq-section{}
+.prereq-section .prereq-head{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#9aa3ad;font-family:'JetBrains Mono',monospace;margin-bottom:6px}
+.prereq-levels{display:flex;flex-direction:column;gap:6px}
+.prereq-level-row{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.prereq-lvl-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:#636d78;min-width:28px;padding-top:4px}
+.prereq-chips{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+.chip{display:inline-flex;align-items:center;gap:4px;background:#1a1f26;border:1px solid var(--line);border-radius:12px;padding:2px 8px;font-size:10px;color:#9aa3ad;font-family:'JetBrains Mono',monospace}
+.chip .chip-rm{cursor:pointer;color:#636d78;font-size:11px;line-height:1;border:none;background:none;padding:0 0 0 2px;color:#9aa3ad}
+.chip .chip-rm:hover{color:var(--danger)}
+.prereq-add{display:flex;gap:4px;align-items:center;margin-top:4px}
+.prereq-add select{width:auto;font-size:11px;padding:4px 6px}
+.prereq-add input[type=number]{width:56px;font-size:11px;padding:4px 6px}
+.prereq-add button{font-size:10px;padding:4px 10px;white-space:nowrap}
+
+/* AI Order editor */
+.ai-order-section{background:var(--steel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.ai-order-head{padding:9px 14px;background:var(--gunmetal);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.ai-order-head h3{font-family:Oswald,sans-serif;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--bone)}
+.ai-order-head .ai-count{font-size:10px;color:#636d78;font-family:'JetBrains Mono',monospace;margin-left:auto}
+.ai-order-body{padding:12px 14px}
+.ai-order-list{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;max-height:340px;overflow-y:auto}
+.ai-order-item{display:flex;align-items:center;gap:6px;background:#0d1014;border:1px solid var(--line);border-radius:5px;padding:5px 8px}
+.ai-order-item .ai-pos{font-family:'JetBrains Mono',monospace;font-size:9px;color:#636d78;width:20px;text-align:right;flex-shrink:0}
+.ai-order-item .ai-name{font-size:11px;color:var(--bone);flex:1;font-family:'JetBrains Mono',monospace}
+.ai-order-item .ai-lvl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--orange);padding:1px 6px;background:#1a1208;border:1px solid #5c3010;border-radius:8px}
+.ai-order-item .ai-btns{display:flex;gap:2px;margin-left:auto}
+.ai-order-item .ai-btns button{font-size:10px;padding:2px 5px;cursor:pointer;background:var(--steel2);border:1px solid var(--line);border-radius:3px;color:#9aa3ad}
+.ai-order-item .ai-btns button:hover{border-color:var(--orange);color:var(--orange)}
+.ai-order-add{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ai-order-add select{width:auto;flex:1;min-width:120px;font-size:11px;padding:5px 7px}
+.ai-order-add input[type=number]{width:60px;font-size:11px;padding:5px 7px}
+.ai-order-add button{white-space:nowrap}
+
+/* Sidebar AI summary */
+.ai-summary-card{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--steel)}
+.ai-summary-card h4{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--orange);margin-bottom:6px;font-family:Oswald,sans-serif}
+.ai-summary-card p{font-size:11px;color:#9aa3ad;line-height:1.6}
+.ai-summary-stats .stat-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--line)}
+.ai-summary-stats .stat-row:last-child{border-bottom:none}
+.ai-summary-stats .sk{font-size:10px;color:#9aa3ad;font-family:'JetBrains Mono',monospace}
+.ai-summary-stats .sv{font-size:12px;color:var(--bone);font-weight:600}
+
 /* ---- Economy panel ---- */
 .econ-layout{display:grid;grid-template-columns:1fr 320px;min-height:100%;gap:0}
 .econ-main{overflow:auto;padding:20px 24px}
@@ -175,25 +270,63 @@ button.sec:hover{border-color:var(--orange);color:var(--orange)}
   <!-- ===== Panels ===== -->
   <div class="panels">
 
-    <!-- === Tech-Tree placeholder === -->
+    <!-- === Tech-Tree panel === -->
     <div class="panel active" id="panel-tech">
-      <div class="placeholder">
-        <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-          <rect x="4" y="4" width="14" height="10" rx="2" fill="#343b44" stroke="#39414b" stroke-width="1.5"/>
-          <rect x="21" y="4" width="14" height="10" rx="2" fill="#343b44" stroke="#39414b" stroke-width="1.5"/>
-          <rect x="38" y="4" width="14" height="10" rx="2" fill="#343b44" stroke="#39414b" stroke-width="1.5"/>
-          <rect x="12" y="22" width="14" height="10" rx="2" fill="#343b44" stroke="#39414b" stroke-width="1.5"/>
-          <rect x="30" y="22" width="14" height="10" rx="2" fill="#343b44" stroke="#39414b" stroke-width="1.5"/>
-          <rect x="21" y="40" width="14" height="10" rx="2" fill="#5C6536" stroke="#5C6536" stroke-width="1.5"/>
-          <line x1="11" y1="14" x2="19" y2="22" stroke="#39414b" stroke-width="1.5"/>
-          <line x1="28" y1="14" x2="19" y2="22" stroke="#39414b" stroke-width="1.5"/>
-          <line x1="28" y1="14" x2="37" y2="22" stroke="#39414b" stroke-width="1.5"/>
-          <line x1="45" y1="14" x2="37" y2="22" stroke="#39414b" stroke-width="1.5"/>
-          <line x1="19" y1="32" x2="28" y2="40" stroke="#39414b" stroke-width="1.5"/>
-          <line x1="37" y1="32" x2="28" y2="40" stroke="#39414b" stroke-width="1.5"/>
-        </svg>
-        <h2>TECH-TREE</h2>
-        <p>Per-faction upgrade editor — coming in next build (Task 3)</p>
+      <div class="tech-layout">
+
+        <!-- Main: upgrade list -->
+        <div class="tech-main">
+          <!-- Toolbar: faction selector -->
+          <div class="tech-toolbar">
+            <label>Faction</label>
+            <select id="tech-faction-sel"></select>
+            <span class="faction-badge" id="tech-faction-badge">— upgrades</span>
+          </div>
+          <!-- Upgrade list rendered by JS -->
+          <div id="tech-upgrade-list"></div>
+        </div>
+
+        <!-- Sidebar: AI order + stats -->
+        <div class="tech-sidebar">
+
+          <!-- AI Order editor -->
+          <div class="ai-order-section">
+            <div class="ai-order-head">
+              <h3>AI Upgrade Queue</h3>
+              <span class="ai-count" id="ai-order-count">0 steps</span>
+            </div>
+            <div class="ai-order-body">
+              <div class="ai-order-list" id="ai-order-list"></div>
+              <div class="ai-order-add">
+                <select id="ai-add-upgrade-sel"></select>
+                <input type="number" id="ai-add-level" min="1" value="1" title="Level">
+                <button class="primary" id="ai-add-btn">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Faction stats card -->
+          <div class="ai-summary-card">
+            <h4>Faction Summary</h4>
+            <div class="ai-summary-stats" id="tech-faction-stats">
+              <div class="stat-row"><span class="sk">Configured upgrades</span><span class="sv" id="stat-tech-configured">—</span></div>
+              <div class="stat-row"><span class="sk">Enabled</span><span class="sv" id="stat-tech-enabled">—</span></div>
+              <div class="stat-row"><span class="sk">Expression (null)</span><span class="sv" id="stat-tech-expr">—</span></div>
+              <div class="stat-row"><span class="sk">AI queue steps</span><span class="sv" id="stat-tech-aiorder">—</span></div>
+            </div>
+          </div>
+
+          <!-- Help card -->
+          <div class="ai-summary-card">
+            <h4>Data Layout</h4>
+            <p>
+              Each upgrade has up to 22 slots (0–21).<br>
+              Factions with 20-entry arrays lack <code>AIRAAM</code>, <code>AAR</code>, <code>UNITCOST</code> — shown as not configured.<br><br>
+              <code>null</code> enabled = runtime expression; treated as "leave as-is" by the game.
+            </p>
+          </div>
+
+        </div>
       </div>
     </div>
 
@@ -726,6 +859,7 @@ async function loadData(){
 
     buildEconomyPanel(MODEL.economy);
     updateIncomePreview();
+    buildTechPanel();
 
   } catch(err){
     console.error('Failed to load data:', err);
@@ -736,6 +870,554 @@ async function loadData(){
 }
 
 loadData();
+
+// ============================================================
+// Tech-Tree panel
+// ============================================================
+
+// Friendly names for upgrade IDs
+const UPGRADE_NAMES = {
+  0:'Barracks', 1:'Light Factory', 2:'Heavy Factory', 3:'Aircraft Factory',
+  4:'Paratroopers', 5:'UAV', 6:'Supply Rate', 7:'Respawn Range',
+  8:'Airlift', 9:'Flares/ECM', 10:'Artillery Timeout', 11:'ICBM',
+  12:'Fast Travel', 13:'Gear', 14:'Ammo Coin', 15:'EASA',
+  16:'Supply Paradrop', 17:'Artillery Ammo', 18:'IR Smoke',
+  19:'Air AA', 20:'Anti-Air Radar', 21:'Unit Cost'
+};
+
+// All 22 upgrade indices in order
+const ALL_UPGRADES = Array.from({length:22}, (_,i) => i);
+
+// Current faction selection
+let techFaction = null;
+
+// ---- helpers ----
+
+function upgradeName(idx){
+  return UPGRADE_NAMES[idx] || ('Upgrade '+idx);
+}
+
+// Safe access into a per-upgrade array (returns undefined if out of bounds)
+function getUpgradeEntry(arr, idx){
+  if(!arr || idx >= arr.length) return undefined;
+  return arr[idx];
+}
+
+// Get max level for upgrade at idx in current faction data
+function getMaxLevel(fd, idx){
+  const lv = getUpgradeEntry(fd.levels, idx);
+  return (lv != null && lv > 0) ? lv : null;
+}
+
+// ---- Tech panel builder ----
+
+function buildTechPanel(){
+  const factionNames = Object.keys(MODEL.upgrades.factions || {});
+  if(!factionNames.length) return;
+
+  // Populate faction selector
+  const sel = document.getElementById('tech-faction-sel');
+  sel.innerHTML = '';
+  factionNames.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f;
+    opt.textContent = f;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', () => {
+    techFaction = sel.value;
+    renderTechFaction();
+  });
+
+  // Populate AI add-upgrade selector
+  const aiSel = document.getElementById('ai-add-upgrade-sel');
+  aiSel.innerHTML = '';
+  ALL_UPGRADES.forEach(idx => {
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = idx + ' — ' + upgradeName(idx);
+    aiSel.appendChild(opt);
+  });
+
+  document.getElementById('ai-add-btn').addEventListener('click', () => {
+    const upgradeId = parseInt(document.getElementById('ai-add-upgrade-sel').value);
+    const level = parseInt(document.getElementById('ai-add-level').value) || 1;
+    const fd = MODEL.upgrades.factions[techFaction];
+    if(!fd) return;
+    fd.ai_order.push([upgradeId, level]);
+    renderAiOrder(fd);
+  });
+
+  // Default faction
+  techFaction = factionNames[0];
+  renderTechFaction();
+}
+
+function renderTechFaction(){
+  const fd = MODEL.upgrades.factions[techFaction];
+  if(!fd) return;
+
+  // Badge
+  const configured = ALL_UPGRADES.filter(i => getUpgradeEntry(fd.levels, i) != null).length;
+  document.getElementById('tech-faction-badge').textContent =
+    configured + ' / 22 upgrades configured';
+
+  // Render upgrade list
+  renderUpgradeList(fd);
+
+  // Render AI order
+  renderAiOrder(fd);
+
+  // Stats
+  updateTechStats(fd);
+}
+
+function updateTechStats(fd){
+  const configured = ALL_UPGRADES.filter(i => getUpgradeEntry(fd.levels, i) != null).length;
+  let enabled = 0, expr = 0;
+  ALL_UPGRADES.forEach(i => {
+    const e = getUpgradeEntry(fd.enabled, i);
+    if(e === true) enabled++;
+    else if(e === null) expr++;
+  });
+  document.getElementById('stat-tech-configured').textContent = configured;
+  document.getElementById('stat-tech-enabled').textContent = enabled;
+  document.getElementById('stat-tech-expr').textContent = expr;
+  document.getElementById('stat-tech-aiorder').textContent = fd.ai_order.length;
+  document.getElementById('ai-order-count').textContent = fd.ai_order.length + ' steps';
+}
+
+// ---- Upgrade list ----
+
+function renderUpgradeList(fd){
+  const container = document.getElementById('tech-upgrade-list');
+  container.innerHTML = '';
+
+  ALL_UPGRADES.forEach(upgradeIdx => {
+    const row = buildUpgradeRow(fd, upgradeIdx);
+    container.appendChild(row);
+  });
+}
+
+function buildUpgradeRow(fd, upgradeIdx){
+  const maxLevel = getMaxLevel(fd, upgradeIdx);
+  const enabledVal = getUpgradeEntry(fd.enabled, upgradeIdx); // true/false/null/undefined
+  const costs = getUpgradeEntry(fd.costs, upgradeIdx);   // [[funds,supply],...] or undefined
+  const times = getUpgradeEntry(fd.times, upgradeIdx);   // [secs,...] or undefined
+  const links = getUpgradeEntry(fd.links, upgradeIdx);   // [[prereqId,reqLvl],...] per level, or undefined
+  const isConfigured = maxLevel != null;
+
+  // Wrapper
+  const row = document.createElement('div');
+  row.className = 'upgrade-row' + (isConfigured ? '' : ' unconfigured');
+  row.id = 'upgrade-row-' + upgradeIdx;
+
+  // --- Header ---
+  const head = document.createElement('div');
+  head.className = 'upgrade-head';
+
+  const idSpan = document.createElement('span');
+  idSpan.className = 'u-id';
+  idSpan.textContent = upgradeIdx;
+
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'u-name';
+  nameSpan.textContent = upgradeName(upgradeIdx);
+
+  // Enable badge
+  const badge = document.createElement('span');
+  badge.className = 'u-badge ' + enableBadgeClass(enabledVal, isConfigured);
+  badge.textContent = enableBadgeText(enabledVal, isConfigured);
+
+  // Level count
+  const lvlCount = document.createElement('span');
+  lvlCount.className = 'u-lvlcount';
+  lvlCount.textContent = isConfigured ? maxLevel + ' lvl' : 'not configured';
+
+  // L1 cost hint
+  const costHint = document.createElement('span');
+  costHint.className = 'u-cost-hint';
+  if(isConfigured && costs && costs[0]){
+    costHint.textContent = '₣' + costs[0][0] + ' / ' + costs[0][1] + 'sup';
+  }
+
+  // Chevron
+  const chevron = document.createElement('span');
+  chevron.className = 'u-chevron';
+  chevron.textContent = '▶';
+
+  head.appendChild(idSpan);
+  head.appendChild(nameSpan);
+  head.appendChild(badge);
+  head.appendChild(lvlCount);
+  head.appendChild(costHint);
+  head.appendChild(chevron);
+
+  // Toggle expand on click
+  head.addEventListener('click', () => {
+    row.classList.toggle('open');
+  });
+
+  row.appendChild(head);
+
+  // --- Body ---
+  const body = document.createElement('div');
+  body.className = 'upgrade-body';
+
+  // Enable toggle
+  body.appendChild(buildEnableToggle(fd, upgradeIdx, badge));
+
+  if(isConfigured){
+    // Per-level grid (costs + times)
+    body.appendChild(buildLevelGrid(fd, upgradeIdx, maxLevel));
+
+    // Prereq editor
+    body.appendChild(buildPrereqEditor(fd, upgradeIdx, maxLevel));
+  } else {
+    const note = document.createElement('p');
+    note.style.cssText = 'font-size:11px;color:#636d78;font-family:JetBrains Mono,monospace';
+    note.textContent = 'This upgrade is not configured for this faction (array too short or levels=0).';
+    body.appendChild(note);
+  }
+
+  row.appendChild(body);
+  return row;
+}
+
+function enableBadgeClass(val, configured){
+  if(!configured) return 'uncfg';
+  if(val === true) return 'enabled';
+  if(val === false) return 'disabled';
+  if(val === null) return 'expression';
+  return 'uncfg'; // undefined
+}
+
+function enableBadgeText(val, configured){
+  if(!configured) return 'N/A';
+  if(val === true) return 'enabled';
+  if(val === false) return 'disabled';
+  if(val === null) return 'expr';
+  return 'N/A';
+}
+
+function buildEnableToggle(fd, upgradeIdx, badgeEl){
+  const wrap = document.createElement('div');
+  wrap.className = 'enable-row';
+
+  const lbl = document.createElement('label');
+  lbl.textContent = 'Enabled:';
+
+  const btns = document.createElement('div');
+  btns.className = 'enable-toggle';
+
+  const currentVal = getUpgradeEntry(fd.enabled, upgradeIdx);
+
+  const options = [
+    {label:'Yes', val:true,  cls:'active-yes'},
+    {label:'No',  val:false, cls:'active-no'},
+    {label:'Expr',val:null,  cls:'active-expr'},
+  ];
+
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.textContent = opt.label;
+    if(currentVal === opt.val) btn.classList.add(opt.cls);
+
+    btn.addEventListener('click', () => {
+      // Update model
+      if(upgradeIdx < fd.enabled.length){
+        fd.enabled[upgradeIdx] = opt.val;
+      }
+      // Update button states
+      btns.querySelectorAll('button').forEach(b => {
+        b.classList.remove('active-yes','active-no','active-expr');
+      });
+      btn.classList.add(opt.cls);
+      // Update badge in header
+      const configured = getMaxLevel(fd, upgradeIdx) != null;
+      badgeEl.className = 'u-badge ' + enableBadgeClass(opt.val, configured);
+      badgeEl.textContent = enableBadgeText(opt.val, configured);
+      // Update stats
+      updateTechStats(fd);
+    });
+    btns.appendChild(btn);
+  });
+
+  wrap.appendChild(lbl);
+  wrap.appendChild(btns);
+  return wrap;
+}
+
+function buildLevelGrid(fd, upgradeIdx, maxLevel){
+  const wrap = document.createElement('div');
+  wrap.className = 'level-grid-wrap';
+
+  const costs = getUpgradeEntry(fd.costs, upgradeIdx) || [];
+  const times = getUpgradeEntry(fd.times, upgradeIdx) || [];
+
+  // Header
+  const hdr = document.createElement('div');
+  hdr.className = 'level-grid-head';
+  ['Lvl','Funds','Supply','Time (s)'].forEach(t => {
+    const s = document.createElement('span');
+    s.textContent = t;
+    hdr.appendChild(s);
+  });
+  wrap.appendChild(hdr);
+
+  for(let lvl = 1; lvl <= maxLevel; lvl++){
+    const rowEl = document.createElement('div');
+    rowEl.className = 'level-grid-row';
+
+    const lvlLbl = document.createElement('span');
+    lvlLbl.className = 'lvl-label';
+    lvlLbl.textContent = 'L' + lvl;
+    rowEl.appendChild(lvlLbl);
+
+    // Funds
+    const fundsInp = makeTechNumberInput(
+      costs[lvl-1] ? costs[lvl-1][0] : 0,
+      (v) => {
+        if(!fd.costs[upgradeIdx]) fd.costs[upgradeIdx] = [];
+        if(!fd.costs[upgradeIdx][lvl-1]) fd.costs[upgradeIdx][lvl-1] = [0,0];
+        fd.costs[upgradeIdx][lvl-1][0] = v;
+        // Update cost hint in header
+        updateCostHint(fd, upgradeIdx);
+      }
+    );
+
+    // Supply
+    const supplyInp = makeTechNumberInput(
+      costs[lvl-1] ? costs[lvl-1][1] : 0,
+      (v) => {
+        if(!fd.costs[upgradeIdx]) fd.costs[upgradeIdx] = [];
+        if(!fd.costs[upgradeIdx][lvl-1]) fd.costs[upgradeIdx][lvl-1] = [0,0];
+        fd.costs[upgradeIdx][lvl-1][1] = v;
+        updateCostHint(fd, upgradeIdx);
+      }
+    );
+
+    // Time
+    const timeInp = makeTechNumberInput(
+      times[lvl-1] != null ? times[lvl-1] : 0,
+      (v) => {
+        if(upgradeIdx < fd.times.length){
+          if(!fd.times[upgradeIdx]) fd.times[upgradeIdx] = [];
+          fd.times[upgradeIdx][lvl-1] = v;
+        }
+      }
+    );
+
+    rowEl.appendChild(fundsInp);
+    rowEl.appendChild(supplyInp);
+    rowEl.appendChild(timeInp);
+    wrap.appendChild(rowEl);
+  }
+
+  return wrap;
+}
+
+function makeTechNumberInput(val, onChange){
+  const inp = document.createElement('input');
+  inp.type = 'number';
+  inp.value = val;
+  inp.min = 0;
+  inp.step = 1;
+  inp.addEventListener('change', () => {
+    const v = parseFloat(inp.value);
+    if(!isNaN(v)) onChange(v);
+  });
+  return inp;
+}
+
+function updateCostHint(fd, upgradeIdx){
+  const hint = document.querySelector('#upgrade-row-' + upgradeIdx + ' .u-cost-hint');
+  if(!hint) return;
+  const costs = getUpgradeEntry(fd.costs, upgradeIdx);
+  if(costs && costs[0]){
+    hint.textContent = '₣' + costs[0][0] + ' / ' + costs[0][1] + 'sup';
+  }
+}
+
+// Ensure fd.links[upgradeIdx] exists and has at least maxLevel slots
+function ensureLinksSlots(fd, upgradeIdx, maxLevel){
+  if(!fd.links[upgradeIdx]) fd.links[upgradeIdx] = [];
+  while(fd.links[upgradeIdx].length < maxLevel) fd.links[upgradeIdx].push([]);
+}
+
+// ---- Prereq editor ----
+
+function buildPrereqEditor(fd, upgradeIdx, maxLevel){
+  const section = document.createElement('div');
+  section.className = 'prereq-section';
+
+  const hd = document.createElement('div');
+  hd.className = 'prereq-head';
+  hd.textContent = 'Prerequisites (per level)';
+  section.appendChild(hd);
+
+  const levelsWrap = document.createElement('div');
+  levelsWrap.className = 'prereq-levels';
+  section.appendChild(levelsWrap);
+
+  function rebuildPrereqLevels(){
+    levelsWrap.innerHTML = '';
+    const links = getUpgradeEntry(fd.links, upgradeIdx) || [];
+
+    for(let lvl = 1; lvl <= maxLevel; lvl++){
+      // Each level entry is [] (no prereq) or [prereqId, reqLevel] (single pair)
+      const entry = links[lvl-1] || [];
+      const hasPrereq = Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'number';
+
+      const lvlRow = document.createElement('div');
+      lvlRow.className = 'prereq-level-row';
+
+      const lbl = document.createElement('span');
+      lbl.className = 'prereq-lvl-label';
+      lbl.textContent = 'L' + lvl;
+      lvlRow.appendChild(lbl);
+
+      const chipsWrap = document.createElement('div');
+      chipsWrap.className = 'prereq-chips';
+
+      if(hasPrereq){
+        const [preId, preReqLvl] = entry;
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = upgradeName(preId) + ' L' + preReqLvl;
+
+        const rmBtn = document.createElement('button');
+        rmBtn.className = 'chip-rm';
+        rmBtn.textContent = '×';
+        rmBtn.title = 'Remove prerequisite';
+        rmBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          ensureLinksSlots(fd, upgradeIdx, maxLevel);
+          fd.links[upgradeIdx][lvl-1] = [];
+          rebuildPrereqLevels();
+        });
+        chip.appendChild(rmBtn);
+        chipsWrap.appendChild(chip);
+      }
+
+      lvlRow.appendChild(chipsWrap);
+
+      // Add/set prereq row (only if no prereq set yet, or to replace)
+      const addRow = document.createElement('div');
+      addRow.className = 'prereq-add';
+
+      const addSel = document.createElement('select');
+      ALL_UPGRADES.filter(i => i !== upgradeIdx).forEach(i => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = i + ' — ' + upgradeName(i);
+        addSel.appendChild(opt);
+      });
+
+      const addLvlInp = document.createElement('input');
+      addLvlInp.type = 'number';
+      addLvlInp.min = 1;
+      addLvlInp.value = 1;
+
+      const addBtn = document.createElement('button');
+      addBtn.className = 'sec';
+      addBtn.textContent = hasPrereq ? '↺ Replace' : '+ Prereq';
+      addBtn.addEventListener('click', () => {
+        const preId = parseInt(addSel.value);
+        const preReqLvl = parseInt(addLvlInp.value) || 1;
+        ensureLinksSlots(fd, upgradeIdx, maxLevel);
+        fd.links[upgradeIdx][lvl-1] = [preId, preReqLvl];
+        rebuildPrereqLevels();
+      });
+
+      addRow.appendChild(addSel);
+      addRow.appendChild(addLvlInp);
+      addRow.appendChild(addBtn);
+      lvlRow.appendChild(addRow);
+
+      levelsWrap.appendChild(lvlRow);
+    }
+  }
+
+  rebuildPrereqLevels();
+  return section;
+}
+
+// ---- AI Order editor ----
+
+function renderAiOrder(fd){
+  const list = document.getElementById('ai-order-list');
+  list.innerHTML = '';
+
+  fd.ai_order.forEach(([upgradeId, level], pos) => {
+    const item = document.createElement('div');
+    item.className = 'ai-order-item';
+
+    const posEl = document.createElement('span');
+    posEl.className = 'ai-pos';
+    posEl.textContent = (pos+1) + '.';
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'ai-name';
+    nameEl.textContent = upgradeName(upgradeId);
+
+    const lvlEl = document.createElement('span');
+    lvlEl.className = 'ai-lvl';
+    lvlEl.textContent = 'L' + level;
+
+    const btns = document.createElement('div');
+    btns.className = 'ai-btns';
+
+    // Up
+    const upBtn = document.createElement('button');
+    upBtn.textContent = '▲';
+    upBtn.title = 'Move up';
+    upBtn.disabled = pos === 0;
+    upBtn.addEventListener('click', () => {
+      const tmp = fd.ai_order[pos-1];
+      fd.ai_order[pos-1] = fd.ai_order[pos];
+      fd.ai_order[pos] = tmp;
+      renderAiOrder(fd);
+    });
+
+    // Down
+    const dnBtn = document.createElement('button');
+    dnBtn.textContent = '▼';
+    dnBtn.title = 'Move down';
+    dnBtn.disabled = pos === fd.ai_order.length - 1;
+    dnBtn.addEventListener('click', () => {
+      const tmp = fd.ai_order[pos+1];
+      fd.ai_order[pos+1] = fd.ai_order[pos];
+      fd.ai_order[pos] = tmp;
+      renderAiOrder(fd);
+    });
+
+    // Remove
+    const rmBtn = document.createElement('button');
+    rmBtn.textContent = '✕';
+    rmBtn.title = 'Remove';
+    rmBtn.style.color = '#c06060';
+    rmBtn.addEventListener('click', () => {
+      fd.ai_order.splice(pos, 1);
+      renderAiOrder(fd);
+      updateTechStats(fd);
+    });
+
+    btns.appendChild(upBtn);
+    btns.appendChild(dnBtn);
+    btns.appendChild(rmBtn);
+
+    item.appendChild(posEl);
+    item.appendChild(nameEl);
+    item.appendChild(lvlEl);
+    item.appendChild(btns);
+    list.appendChild(item);
+  });
+
+  document.getElementById('ai-order-count').textContent = fd.ai_order.length + ' steps';
+  updateTechStats(fd);
+}
+
 </script>
 </body>
 </html>
