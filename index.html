@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Strategy &amp; Economy — WASP Balance Tuner</title>
 <meta name="description" content="Offline single-file tuner for WASP Warfare tech-tree, economy, and AI commander constants. Edit, preview, export.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2096%2096'%3E%3Cpolyline%20points%3D'20%2C54%2048%2C30%2076%2C54'%20fill%3D'none'%20stroke%3D'%23D9763C'%20stroke-width%3D'7'%2F%3E%3Cpolyline%20points%3D'20%2C72%2048%2C48%2076%2C72'%20fill%3D'none'%20stroke%3D'%235C6536'%20stroke-width%3D'7'%2F%3E%3C%2Fsvg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -288,6 +289,7 @@ button.sec{
   color:var(--bone);border-radius:5px;padding:7px 14px;font-size:12px;font-family:inherit
 }
 button.sec:hover{border-color:var(--orange);color:var(--orange)}
+button.sec:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
 
 /* ---- Export drawer ---- */
 .export-drawer{
@@ -344,9 +346,46 @@ button.sec:hover{border-color:var(--orange);color:var(--orange)}
 .ep-mode-tab{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.8px;text-transform:uppercase;
   background:none;border:1px solid var(--line);color:#9aa3ad;cursor:pointer;padding:4px 10px;border-radius:4px}
 .ep-mode-tab.active{background:var(--orange);color:#1a1208;border-color:var(--orange)}
+
+/* Faction handoff banner */
+#faction-handoff-banner{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:9000;
+  background:#1a2a0e;border-bottom:2px solid #5a8a2a;
+  padding:8px 16px;font-family:'JetBrains Mono',monospace;font-size:11px;
+  color:#c8e8a0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+#faction-handoff-banner.fh-hidden{display:none!important}
+#faction-handoff-banner .fh-icon{font-size:14px;flex-shrink:0}
+#faction-handoff-banner .fh-msg{flex:1;min-width:0}
+#faction-handoff-banner .fh-side{font-weight:bold;color:#8abf5a}
+#faction-handoff-banner .fh-token{color:#636d78;font-size:10px;margin-left:4px}
+#faction-handoff-banner .fh-add{
+  background:#5a8a2a;color:#fff;border:none;border-radius:4px;
+  padding:4px 12px;font-size:11px;cursor:pointer;font-family:Oswald,sans-serif;
+  letter-spacing:.6px;text-transform:uppercase;white-space:nowrap;
+}
+#faction-handoff-banner .fh-add:hover{background:#6aa030}
+#faction-handoff-banner .fh-dismiss{
+  background:none;border:1px solid #3a5a1a;color:#8abf5a;border-radius:4px;
+  padding:3px 9px;font-size:11px;cursor:pointer;white-space:nowrap;
+}
+#faction-handoff-banner .fh-dismiss:hover{background:#0d1a06}
 </style>
 </head>
 <body>
+
+<!-- ===== Faction handoff banner (hidden until localStorage key present) ===== -->
+<div id="faction-handoff-banner" class="fh-hidden" role="status" aria-live="polite">
+  <span class="fh-icon">&#x21E8;</span>
+  <span class="fh-msg">
+    Faction handoff from Faction Builder:
+    <span class="fh-side" id="fh-side-name"></span>
+    <span class="fh-token" id="fh-token-label"></span>
+    &mdash; select it in the Tech-Tree to refine upgrades.
+  </span>
+  <button class="fh-add" id="fh-btn-add">Select Faction</button>
+  <button class="fh-dismiss" id="fh-btn-dismiss">Dismiss</button>
+</div>
 
 <!-- ===== Brand bar ===== -->
 <div class="brandbar">
@@ -569,7 +608,7 @@ button.sec:hover{border-color:var(--orange);color:var(--orange)}
 </div>
 
 <!-- ===== Export Drawer ===== -->
-<div class="export-drawer" id="export-drawer" role="dialog" aria-modal="true">
+<div class="export-drawer" id="export-drawer" role="dialog" aria-modal="true" aria-labelledby="ep-title">
   <div class="export-pane" id="export-pane">
     <div class="export-pane-head">
       <h2 id="ep-title">Export</h2>
@@ -603,8 +642,8 @@ button.sec:hover{border-color:var(--orange);color:var(--orange)}
           <h3 id="ep-output-title">Output</h3>
           <div class="ep-out-btns">
             <button class="sec" id="ep-btn-generate">Generate</button>
-            <button class="sec" id="ep-btn-copy" title="Copy to clipboard">Copy</button>
-            <button class="sec" id="ep-btn-download" title="Download file">Download</button>
+            <button class="sec" id="ep-btn-copy" title="Copy to clipboard" disabled>Copy</button>
+            <button class="sec" id="ep-btn-download" title="Download file" disabled>Download</button>
           </div>
         </div>
         <div class="ep-code" id="ep-output-code"><span style="color:#636d78;font-style:italic">Click Generate to produce output.</span></div>
@@ -909,13 +948,21 @@ function renderField(container, key, val){
   lbl.appendChild(keySpan);
   div.appendChild(lbl);
 
+  let inp;
   if(isArray(val)){
-    div.appendChild(makeArrayEditor(key, val));
+    inp = makeArrayEditor(key, val);
   } else if(SELECT_FIELDS[key]){
-    div.appendChild(makeSelectInput(key, val));
+    inp = makeSelectInput(key, val);
   } else {
-    div.appendChild(makeNumberInput(key, val));
+    inp = makeNumberInput(key, val);
   }
+
+  if(!isArray(val)){
+    const uid = 'field-econ-' + key;
+    inp.id = uid;
+    lbl.htmlFor = uid;
+  }
+  div.appendChild(inp);
 
   container.appendChild(div);
 }
@@ -943,7 +990,7 @@ function renderGroup(group, econData){
   const usePairGrid = group.id === 'starting' || group.id === 'hqrepair';
   if(usePairGrid){
     const grid = document.createElement('div');
-    grid.className = group.id === 'starting' ? 'grid2' : 'grid2';
+    grid.className = 'grid2';
     group.keys.forEach(k => {
       if(k in econData) renderField(grid, k, econData[k]);
     });
@@ -1864,7 +1911,9 @@ function renderAiField(container, key, val, readOnly){
   div.className = 'field' + (readOnly ? ' field-readonly' : '');
   div.dataset.aiKey = key;
 
+  const uid = 'field-ai-' + key;
   const lbl = document.createElement('label');
+  if(!readOnly) lbl.htmlFor = uid;
   const friendly = AI_KEY_LABELS[key] || key;
   lbl.textContent = friendly;
   const keySpan = document.createElement('span');
@@ -1881,6 +1930,7 @@ function renderAiField(container, key, val, readOnly){
 
   if(AI_SELECT_FIELDS[key] && !readOnly){
     const sel = document.createElement('select');
+    sel.id = uid;
     AI_SELECT_FIELDS[key].forEach(o => {
       const opt = document.createElement('option');
       opt.value = o.v;
@@ -1894,6 +1944,7 @@ function renderAiField(container, key, val, readOnly){
     div.appendChild(sel);
   } else if(Array.isArray(val)){
     // Shouldn't happen for AI keys but handle gracefully
+    // Array has multiple inputs — no single id to wire
     const row = document.createElement('div');
     row.className = 'array-row';
     val.forEach((v, i) => {
@@ -1924,6 +1975,7 @@ function renderAiField(container, key, val, readOnly){
     inp.value = val;
     inp.step = aiGetStep(key);
     inp.min = 0;
+    if(!readOnly) inp.id = uid;
     if(readOnly){
       inp.readOnly = true;
     } else {
@@ -2933,6 +2985,7 @@ async function loadDataWithSeeds(){
 const _seedObserver = new MutationObserver(() => {
   if(MODEL.economy && Object.keys(MODEL.economy).length && !SEED_ECONOMY){
     captureSeeds();
+    _seedObserver.disconnect();
   }
 });
 _seedObserver.observe(document.querySelector('#model-status b'), {childList:true, characterData:true, subtree:true});
@@ -2979,16 +3032,27 @@ function openExportDrawer(mode){
     epOutputTitle.textContent = 'Init_CommonConstants.sqf output';
   }
 
-  // Reset raw paste text so stale source from a previous session doesn't bleed in
+  // Reset raw paste text AND textarea so stale source doesn't bleed in
   _rawPasteText = '';
+  epPasteArea.value = '';
   // Reset output
   epOutputCode.innerHTML = '<span style="color:#636d78;font-style:italic">Click Generate to produce output.</span>';
+  // Re-disable Copy/Download until a new Generate succeeds
+  document.getElementById('ep-btn-copy').disabled = true;
+  document.getElementById('ep-btn-download').disabled = true;
   updateParseStatus();
+  // Move focus into the drawer for keyboard accessibility
+  document.getElementById('ep-btn-generate').focus();
 }
 
 epClose.addEventListener('click', () => exportDrawer.classList.remove('open'));
 exportDrawer.addEventListener('click', e => {
   if(e.target === exportDrawer) exportDrawer.classList.remove('open');
+});
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && exportDrawer.classList.contains('open')){
+    exportDrawer.classList.remove('open');
+  }
 });
 
 document.getElementById('btn-open-export-upgrades').addEventListener('click', () => openExportDrawer('upgrades'));
@@ -3187,11 +3251,13 @@ function buildConstantsPatchedOutput(patchedText, proposed, changed){
 
 function showOutputError(msg){
   epOutputCode.innerHTML = '<span style="color:var(--danger)">Error: ' + escHtml(msg) + '</span>';
+  document.getElementById('ep-btn-copy').disabled = true;
+  document.getElementById('ep-btn-download').disabled = true;
 }
 
 function showOutputText(text, kind, faction, origText){
   // Syntax-highlight: if patch mode, diff against origText to mark changed lines
-  if((kind === 'patch' || kind === 'patch-constants') && origText){
+  if(kind === 'patch' && origText){
     const origLines = origText.split('\n');
     const newLines = text.split('\n');
     const html = newLines.map((line, i) => {
@@ -3228,11 +3294,13 @@ function showOutputText(text, kind, faction, origText){
     }).join('\n');
     epOutputCode.innerHTML = html;
   }
+  document.getElementById('ep-btn-copy').disabled = false;
+  document.getElementById('ep-btn-download').disabled = false;
 }
 
 // Copy button
 document.getElementById('ep-btn-copy').addEventListener('click', () => {
-  if(!_lastGeneratedText){ alert('Generate first.'); return; }
+  if(!_lastGeneratedText){ return; }
   navigator.clipboard.writeText(_lastGeneratedText).then(() => {
     const btn = document.getElementById('ep-btn-copy');
     const orig = btn.textContent;
@@ -3251,7 +3319,7 @@ document.getElementById('ep-btn-copy').addEventListener('click', () => {
 
 // Download button
 document.getElementById('ep-btn-download').addEventListener('click', () => {
-  if(!_lastGeneratedText){ alert('Generate first.'); return; }
+  if(!_lastGeneratedText){ return; }
   const blob = new Blob([_lastGeneratedText], {type:'text/plain'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -3260,6 +3328,94 @@ document.getElementById('ep-btn-download').addEventListener('click', () => {
   a.click();
   URL.revokeObjectURL(url);
 });
+
+// ============================================================
+// Faction handoff reader (wasp-faction-handoff localStorage key)
+// Set by the Faction Builder tool; allows the user to jump to
+// that faction's upgrade editor with one click.
+// Key shape: { token, side, factionStr, coreUnits }
+// ============================================================
+(function initFactionHandoff(){
+  let _handoff = null;
+
+  function tryReadHandoff(){
+    try {
+      const raw = localStorage.getItem('wasp-faction-handoff');
+      if(!raw) return null;
+      const parsed = JSON.parse(raw);
+      if(parsed && parsed.token && parsed.side) return parsed;
+      return null;
+    } catch(e){ return null; }
+  }
+
+  function showHandoffBanner(h){
+    const banner = document.getElementById('faction-handoff-banner');
+    if(!banner) return;
+    document.getElementById('fh-side-name').textContent = h.factionStr || h.side;
+    const tok = h.token ? '(token: ' + String(h.token).slice(0,8) + '…)' : '';
+    document.getElementById('fh-token-label').textContent = tok;
+    banner.classList.remove('fh-hidden');
+    banner.style.display = 'flex';
+  }
+
+  function dismissBanner(){
+    const banner = document.getElementById('faction-handoff-banner');
+    if(banner){ banner.classList.add('fh-hidden'); banner.style.display = 'none'; }
+    _handoff = null;
+  }
+
+  function applyHandoff(h){
+    // Switch to Tech-Tree tab
+    const techTabBtn = document.querySelector('[data-tab="tech"]');
+    if(techTabBtn) techTabBtn.click();
+
+    // Try to select the faction in the Tech-Tree selector
+    const sel = document.getElementById('tech-faction-sel');
+    if(sel){
+      // Look for an exact match on factionStr or side
+      const target = h.factionStr || h.side;
+      let matched = false;
+      for(let i = 0; i < sel.options.length; i++){
+        if(sel.options[i].value === target){
+          sel.value = target;
+          sel.dispatchEvent(new Event('change'));
+          matched = true;
+          break;
+        }
+      }
+      if(!matched){
+        // Partial match fallback (case-insensitive)
+        const tl = target.toLowerCase();
+        for(let i = 0; i < sel.options.length; i++){
+          if(sel.options[i].value.toLowerCase().includes(tl)){
+            sel.value = sel.options[i].value;
+            sel.dispatchEvent(new Event('change'));
+            break;
+          }
+        }
+      }
+    }
+
+    // Clear the key so we don't re-show on next load
+    try { localStorage.removeItem('wasp-faction-handoff'); } catch(e){}
+    dismissBanner();
+  }
+
+  document.getElementById('fh-btn-dismiss').addEventListener('click', () => {
+    try { localStorage.removeItem('wasp-faction-handoff'); } catch(e){}
+    dismissBanner();
+  });
+
+  document.getElementById('fh-btn-add').addEventListener('click', () => {
+    if(_handoff) applyHandoff(_handoff);
+  });
+
+  // Run after the rest of the page initialises (model load is async)
+  window.addEventListener('load', () => {
+    _handoff = tryReadHandoff();
+    if(_handoff) showHandoffBanner(_handoff);
+  });
+})();
 
 // Expose export functions for Playwright testing
 window.EXPORT = {
