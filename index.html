@@ -35,6 +35,13 @@ h1,h2,h3{font-family:Oswald,Inter,sans-serif;font-weight:600;letter-spacing:.5px
 .brandbar .chip{font-family:'JetBrains Mono',monospace;font-size:10px;color:#8b939c;border:1px solid var(--line);
   border-radius:10px;padding:3px 9px;background:#0d1014}
 .brandbar .chip b{color:var(--olive)}
+.brandbar .back-link{
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:#8b939c;
+  text-decoration:none;border:1px solid var(--line);border-radius:10px;
+  padding:3px 9px;background:#0d1014;transition:color .15s,border-color .15s;
+  white-space:nowrap;
+}
+.brandbar .back-link:hover{color:var(--bone);border-color:#636d78}
 
 /* ---- Layout ---- */
 .app{display:flex;flex-direction:column;height:calc(100vh - 54px)}
@@ -355,6 +362,15 @@ button:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
   background:none;border:1px solid var(--line);color:#9aa3ad;cursor:pointer;padding:4px 10px;border-radius:4px}
 .ep-mode-tab.active{background:var(--orange);color:#1a1208;border-color:var(--orange)}
 
+/* Validation warning strip (unknown upgrade constant names) */
+.ep-validation-strip{
+  display:none;background:#2a1500;border:1px solid #8b5a00;border-radius:6px;
+  padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#e8a040;
+  line-height:1.5;white-space:pre-wrap;word-break:break-all;
+}
+.ep-validation-strip.visible{display:block}
+.ep-validation-strip strong{color:#ffb845;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:.5px}
+
 /* Faction handoff banner */
 #faction-handoff-banner{
   display:none;position:fixed;top:0;left:0;right:0;z-index:9000;
@@ -410,6 +426,7 @@ button:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
   </div>
   <div class="tool"><b>Warfare Balance Editor</b> · tech-tree · economy · AI commander</div>
   <div class="spacer"></div>
+  <a class="back-link" href="https://miksuu.com/tools" title="Back to all tools">&#8592; All Tools</a>
   <div class="chip" id="model-status">model: <b>loading…</b></div>
 </div>
 
@@ -653,6 +670,9 @@ button:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
           </div>
         </div>
       </div>
+
+      <!-- Validation warnings (unknown upgrade constant names) -->
+      <div class="ep-validation-strip" id="ep-validation-strip" role="alert" aria-live="polite"></div>
 
       <!-- Output -->
       <div class="ep-output-section" id="ep-output-section">
@@ -1110,6 +1130,11 @@ async function loadData(){
     MODEL.economy   = await econResp.json();
     MODEL.upgrades  = await upgradesResp.json();
     MODEL.ai        = await aiResp.json();
+
+    // Capture seeds immediately after data is assigned, before any UI render
+    // or user interaction can modify MODEL. This ensures diffs are always
+    // computed against the pristine loaded values.
+    captureSeeds();
 
     const statusEl = document.querySelector('#model-status b');
     statusEl.textContent = Object.keys(MODEL.economy).length + ' econ · '
@@ -2732,30 +2757,55 @@ function shouldTrackConstant(name){
   return prefixes.some(p => name.startsWith(p));
 }
 
-// Parse a raw SQF value text back to JS (for comparison)
+// Parse a raw SQF value text back to JS (for comparison).
+// Returns { value, unknownNames } where unknownNames is an array of unrecognised
+// WFBE_UP_* token strings encountered during parse (silently coercing to 0 was
+// the old behaviour; we now surface them so callers can warn the user).
 function parseSqfValueText(txt){
   txt = txt.trim();
-  if(txt === 'true') return true;
-  if(txt === 'false') return false;
-  if(txt === 'nil') return null;
+  if(txt === 'true') return { value: true, unknownNames: [] };
+  if(txt === 'false') return { value: false, unknownNames: [] };
+  if(txt === 'nil') return { value: null, unknownNames: [] };
   if(txt.startsWith('[')){
-    // Use a simple eval-like approach: replace WFBE_UP_* with placeholder
-    // then JSON parse
+    // Replace WFBE_UP_* tokens with their numeric IDs for JSON.parse.
+    // Collect any names not present in MODEL.upgrades.ids.
+    const unknownNames = [];
     try{
       const json = txt
         .replace(/WFBE_UP_[A-Z0-9_]+/g, m => {
           const ids = (MODEL.upgrades && MODEL.upgrades.ids) || {};
           const name = m.replace('WFBE_UP_','');
-          return (name in ids) ? ids[name] : 0;
+          if(name in ids) return ids[name];
+          unknownNames.push(m);
+          return 0; // keep parse alive; caller will warn
         })
         .replace(/\btrue\b/gi, 'true')
         .replace(/\bfalse\b/gi, 'false');
-      return JSON.parse(json);
-    }catch(e){ return txt; }
+      return { value: JSON.parse(json), unknownNames };
+    }catch(e){ return { value: txt, unknownNames }; }
   }
   const n = Number(txt);
-  if(!isNaN(n)) return n;
-  return txt;
+  if(!isNaN(n)) return { value: n, unknownNames: [] };
+  return { value: txt, unknownNames: [] };
+}
+
+// Show (or clear) the validation warning strip.
+// unknownNames — deduplicated array of unrecognised WFBE_UP_* token strings.
+function showValidationWarnings(unknownNames){
+  const strip = document.getElementById('ep-validation-strip');
+  if(!strip) return;
+  if(!unknownNames || unknownNames.length === 0){
+    strip.classList.remove('visible');
+    strip.innerHTML = '';
+    return;
+  }
+  const unique = [...new Set(unknownNames)];
+  console.warn('[strategy-economy] Unknown upgrade constant name(s) in pasted source:', unique);
+  strip.innerHTML = '<strong>WARNING — Unknown upgrade constant(s)</strong>\n'
+    + 'The following WFBE_UP_* names were not found in the loaded upgrades model and '
+    + 'were treated as 0 during parse. The diff/patch for prereq arrays may be incorrect.\n'
+    + unique.map(n => '  ' + escHtml(n)).join('\n');
+  strip.classList.add('visible');
 }
 
 // Deep equality check for JS values (numbers, arrays, booleans)
@@ -2989,33 +3039,11 @@ let SEED_ECONOMY = null;
 let SEED_AI = null;
 let SEED_UPGRADES = null; // factions snapshot
 
-// Capture seeds after data loads
-const _origLoadData = loadData;
-// We'll hook into loadData completion:
-const _origBuildEconomyPanel = buildEconomyPanel;
-
 function captureSeeds(){
   SEED_ECONOMY = JSON.parse(JSON.stringify(MODEL.economy));
   SEED_AI = JSON.parse(JSON.stringify(MODEL.ai));
   SEED_UPGRADES = JSON.parse(JSON.stringify(MODEL.upgrades));
 }
-
-// Patch loadData to capture seeds
-async function loadDataWithSeeds(){
-  await _origLoadData.apply(this, arguments);
-  captureSeeds();
-}
-// Replace global loadData (already called above, re-call is needed — actually we replace before calling)
-// The issue: loadData is already called. We need to hook post-load.
-// Solution: Observe when MODEL is populated.
-// Since loadData is async and already invoked, we add a MutationObserver on the chip.
-const _seedObserver = new MutationObserver(() => {
-  if(MODEL.economy && Object.keys(MODEL.economy).length && !SEED_ECONOMY){
-    captureSeeds();
-    _seedObserver.disconnect();
-  }
-});
-_seedObserver.observe(document.querySelector('#model-status b'), {childList:true, characterData:true, subtree:true});
 
 // ============================================================
 // Export drawer UI wiring
@@ -3147,6 +3175,8 @@ epPasteArea.addEventListener('input', () => {
 
 function updateParseStatus(){
   const text = epPasteArea.value.trim();
+  // Clear validation warnings whenever parse status refreshes
+  showValidationWarnings([]);
   if(!text){
     epParseStatus.innerHTML = '<span class="st-none">No source pasted — will generate change-list instead</span>';
     return;
@@ -3159,6 +3189,16 @@ function updateParseStatus(){
         epParseStatus.innerHTML = '<span class="st-err">⚠ No WFBE_C_UPGRADES_%1_* blocks found — is this a faction file?</span>';
       } else {
         epParseStatus.innerHTML = '<span class="st-ok">✓ Found ' + found + '/6 array blocks. Ready for patch-in-place.</span>';
+        // Check for unknown WFBE_UP_* constant names in the pasted source.
+        // These occur in LINKS and AI_ORDER arrays. Silently coercing them to 0
+        // would produce incorrect diff baselines, so warn immediately.
+        const ids = (MODEL.upgrades && MODEL.upgrades.ids) || {};
+        const unknownNames = [];
+        for(const m of text.matchAll(/WFBE_UP_([A-Z0-9_]+)/g)){
+          const name = m[1];
+          if(!(name in ids)) unknownNames.push('WFBE_UP_' + name);
+        }
+        showValidationWarnings(unknownNames);
       }
     } else {
       const spans = parseConstantSpans(text);
@@ -3492,9 +3532,11 @@ window.EXPORT = {
   captureSeeds,
   parseUpgradesSpans,
   parseConstantSpans,
+  parseSqfValueText,
   patchUpgradesFile,
   patchConstantsFile,
   deepEq,
+  getValidationWarnings: () => document.getElementById('ep-validation-strip')?.textContent || '',
 };
 
 </script>
