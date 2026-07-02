@@ -453,6 +453,8 @@ button:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
             <label>Faction</label>
             <select id="tech-faction-sel"></select>
             <span class="faction-badge" id="tech-faction-badge">— upgrades</span>
+            <button class="sec" id="btn-enable-all" title="Set all non-expression upgrades to Enabled for this faction" style="font-size:10px;padding:4px 10px">Enable All</button>
+            <button class="sec" id="btn-disable-all" title="Set all non-expression upgrades to Disabled for this faction" style="font-size:10px;padding:4px 10px">Disable All</button>
           </div>
           <!-- Upgrade list rendered by JS -->
           <div id="tech-upgrade-list"></div>
@@ -2317,15 +2319,46 @@ document.getElementById('tech-faction-sel').addEventListener('change', () => {
   renderAiPanelQueue();
 });
 
-// Patch economy FUNDS_START inputs to also update seed preview
-// We do this by observing changes on any input[data-econ-key starts with FUNDS_START]
-// Using a MutationObserver + delegated event on econ-main
+// Enable All / Disable All buttons — set every non-expression (non-null) upgrade
+// for the current faction to true or false, then re-render the tech panel.
+function bulkSetEnabled(value){
+  const fd = MODEL.upgrades && MODEL.upgrades.factions && MODEL.upgrades.factions[techFaction];
+  if(!fd || !Array.isArray(fd.enabled)) return;
+  fd.enabled = fd.enabled.map(v => v === null ? null : value);
+  renderTechFaction();
+}
+document.getElementById('btn-enable-all').addEventListener('click', () => bulkSetEnabled(true));
+document.getElementById('btn-disable-all').addEventListener('click', () => bulkSetEnabled(false));
+
+// Re-render the read-only inputs in the AI panel's "Shared Arrays" card
+// whenever an Artillery Intervals or Respawn Ranges value is edited in
+// the Economy panel.  The inputs have readOnly=true, so we update .value
+// directly rather than re-building the whole DOM node.
+function refreshAiSharedArrays(){
+  AI_SHARED_ECONOMY_KEYS.forEach(k => {
+    const val = MODEL.economy[k];
+    if(!Array.isArray(val)) return;
+    const sharedDiv = document.querySelector('[data-shared-key="' + k + '"]');
+    if(!sharedDiv) return;
+    const inputs = sharedDiv.querySelectorAll('input.array-el');
+    inputs.forEach((inp, i) => {
+      if(i < val.length) inp.value = val[i];
+    });
+  });
+}
+
+// Delegated change handler on the Economy panel main container.
+// Updates seed preview on FUNDS_START changes, and refreshes AI panel
+// shared-array mirrors on ARTILLERY_INTERVALS / RESPAWN_RANGES changes.
 document.getElementById('econ-main').addEventListener('change', (e) => {
   const field = e.target.closest('[data-econ-key]');
   if(field){
     const key = field.dataset.econKey;
     if(key && key.startsWith('WFBE_C_ECONOMY_FUNDS_START_')){
       updateSeedPreview();
+    }
+    if(key && AI_SHARED_ECONOMY_KEYS.includes(key)){
+      refreshAiSharedArrays();
     }
   }
 });
