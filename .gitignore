@@ -10,3 +10,15 @@ nul
 *.log
 .vscode/
 .idea/
+
+# Node
+node_modules/
+
+# Dev-server state
+server.pid
+
+# Test artefacts
+test-results/
+
+# Working notes (not published)
+JOURNAL.md
